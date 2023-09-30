@@ -67,7 +67,7 @@ impl<'e> OutputEntry<'e> for File {
                             .tree
                             .as_ref()
                             .map(|tree| {
-                                tree.to_owned() + &self.source.dir.join(&self.path).to_string()
+                                tree.to_owned() + self.source.dir.join(&self.path).to_string().as_str()
                             })
                             .unwrap_or("".into()),
                     )

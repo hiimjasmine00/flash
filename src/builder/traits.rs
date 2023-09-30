@@ -103,7 +103,7 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
         } else {
             Some(
                 config.project.tree.clone()?
-                    + &UrlPath::try_from(&self.header(config)?).ok()?.to_string(),
+                    + UrlPath::try_from(&self.header(config)?).ok()?.to_string().as_str(),
             )
         }
     }

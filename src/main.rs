@@ -1,5 +1,4 @@
 #![feature(let_chains)]
-#![feature(is_some_and)]
 #![feature(result_option_inspect)]
 #![feature(iter_advance_by)]
 #![feature(iter_intersperse)]

@@ -275,7 +275,7 @@ fn annotate(base: Entity, annotations: &[Annotation]) -> Vec<Html> {
                 };
 
             list.push(
-                HtmlText::new("\n".repeat(newlines as usize) + &" ".repeat(spaces as usize)).into(),
+                HtmlText::new("\n".repeat(newlines as usize) + " ".repeat(spaces as usize).as_str()).into(),
             );
         }
 

@@ -190,7 +190,14 @@ impl TutorialFolder {
 
     pub fn folders_sorted(&self) -> Vec<&TutorialFolder> {
         let mut vec = self.folders.iter().collect::<Vec<_>>();
-        vec.sort_by_key(|t| t.0);
+        vec.sort_unstable_by(|a, b| {
+            match (a.1.metadata.clone().and_then(|x| x.order), b.1.metadata.clone().and_then(|x| x.order)) {
+                (Some(a), Some(b)) => a.cmp(&b),
+                (Some(_), None) => Ordering::Less,
+                (None, Some(_)) => Ordering::Greater,
+                (None, None) => a.0.cmp(&b.0),
+            }
+        });
         vec.into_iter().map(|(_, v)| v).collect()
     }
 

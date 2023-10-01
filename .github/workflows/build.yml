@@ -12,7 +12,7 @@ jobs:
         config:
         - name: "Windows"
           os: windows-latest
-          out_paths: './build/release/flash.exe'
+          out_paths: './target/release/flash.exe'
           static: ''
     name: ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.os }}
@@ -25,16 +25,17 @@ jobs:
     - uses: actions-rs/toolchain@v1
       with:
         toolchain: nightly
+        override: true
         
     - uses: Swatinem/rust-cache@v1
       with:
         key: ${{ matrix.config.name }}
-        target-dir: ./build
+        target-dir: ./target
 
     - name: Build
       run: |
         ${{ matrix.config.static }}
-        cargo build --release --target-dir ${{ github.workspace }}/build     
+        cargo +nightly build --release   
     
     - name: Move to output folder
       shell: bash

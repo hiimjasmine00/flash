@@ -91,6 +91,7 @@ main h3 > .get-header-link {
     display: none;
     padding: .25rem;
     margin-left: .25rem;
+    cursor: pointer;
 }
 
 main h1 > .get-header-link > .feather {

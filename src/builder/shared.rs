@@ -163,9 +163,13 @@ fn fmt_param(param: &Entity, builder: &Builder) -> Html {
 }
 
 fn fmt_template_args(entity: &Entity, _builder: &Builder) -> Option<Html> {
+    let template_children = if entity.get_kind() == EntityKind::FunctionTemplate {
+        entity.get_children().into_iter().filter(|e| e.get_kind() == EntityKind::TemplateTypeParameter).collect()
+    } else {
+        entity.get_template()?.get_children()
+    };
     Some(HtmlList::new(
-        entity.get_template()?
-            .get_children()
+        template_children
             .into_iter()
             .map(|e|
                 HtmlText::new(e.get_name().unwrap_or("_".to_string())).into()

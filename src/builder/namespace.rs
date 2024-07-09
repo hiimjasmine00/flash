@@ -23,8 +23,8 @@ impl CppItemKind {
     pub fn from<'e>(entity: &Entity<'e>) -> Option<Self> {
         match entity.get_kind() {
             EntityKind::StructDecl => Some(Self::Struct),
-            EntityKind::ClassDecl | EntityKind::ClassTemplate => Some(Self::Class),
-            EntityKind::FunctionDecl => Some(Self::Function),
+            EntityKind::ClassDecl | EntityKind::ClassTemplate | EntityKind::ClassTemplatePartialSpecialization => Some(Self::Class),
+            EntityKind::FunctionDecl | EntityKind::FunctionTemplate => Some(Self::Function),
             EntityKind::Namespace => Some(Self::Namespace),
             _ => None,
         }

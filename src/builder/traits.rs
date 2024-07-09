@@ -347,7 +347,7 @@ pub fn get_member_functions<'e>(
         .get_children()
         .into_iter()
         .filter(|child| {
-            child.get_kind() == EntityKind::Method
+            (child.get_kind() == EntityKind::Method || child.get_kind() == EntityKind::FunctionTemplate)
                 && match include_statics {
                     Include::Members => !child.is_static_method(),
                     Include::Statics => child.is_static_method(),

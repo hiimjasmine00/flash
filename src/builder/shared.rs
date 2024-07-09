@@ -203,6 +203,11 @@ pub fn fmt_field(field: &Entity, builder: &Builder) -> Html {
 }
 
 pub fn fmt_fun_decl(fun: &Entity, builder: &Builder) -> Html {
+    if fun.get_name().is_some_and(|x| x.contains("add")) {
+        dbg!(&fun);
+        dbg!(fun.get_arguments());
+        dbg!(fun.get_template_arguments());
+    }
     HtmlElement::new("details")
         .with_class("entity-desc")
         .with_attr_opt("id", member_fun_link(fun))

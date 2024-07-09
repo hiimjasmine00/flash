@@ -60,8 +60,8 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
     }
 
     fn definition_file(&self) -> Option<PathBuf> {
-        self.get_definition()?
-            .get_location()?
+        self.get_definition()
+            .map_or_else(|| self.get_location(), |d| d.get_location())?
             .get_file_location()
             .file?
             .get_path()

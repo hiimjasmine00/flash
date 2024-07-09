@@ -62,6 +62,7 @@ macro_rules! default_scripts {
     };
 }
 
+#[derive(Debug)]
 pub struct Source {
     pub name: String,
     pub dir: UrlPath,

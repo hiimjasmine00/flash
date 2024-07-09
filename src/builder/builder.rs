@@ -5,17 +5,17 @@ use strfmt::strfmt;
 use tokio::task::JoinHandle;
 
 use crate::{
-    config::{Config},
+    config::Config,
     html::{GenHtml, Html, process::{minify_js, minify_css, minify_html}},
     url::UrlPath,
 };
 
-use super::{files::Root, namespace::{Namespace}, tutorial::TutorialFolder, traits::{OutputEntry, BuildResult, Entry}};
+use super::{files::Root, namespace::Namespace, tutorial::TutorialFolder, traits::{OutputEntry, BuildResult, Entry}};
 
 pub struct Builder<'e> {
     pub config: Arc<Config>,
     pub root: Namespace<'e>,
-    pub clang: &'e Clang,
+    pub _clang: &'e Clang,
     pub index: &'e clang::Index<'e>,
     pub args: &'e [String],
     file_roots: Vec<Root>,
@@ -34,7 +34,7 @@ impl<'e> Builder<'e> {
         Self {
             config: config.clone(),
             root: Namespace::new_root(root),
-            clang,
+            _clang: clang,
             index,
             args,
             file_roots: Root::from_config(config.clone()),

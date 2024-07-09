@@ -39,6 +39,12 @@ pub trait EntityMethods<'e> {
 
     /// Get the parents of this entity
     fn ancestorage(&self) -> Vec<Entity<'e>>;
+
+    /// Gets all the member functions from this entity, assuming it is a class-like entity
+    fn get_member_functions(&self, visibility: Access, include_statics: Include) -> Vec<Entity<'e>>;
+
+    /// Gets the function arguments for this method, including templated ones
+    fn get_function_arguments(&self) -> Option<Vec<Entity<'e>>>;
 }
 
 impl<'e> EntityMethods<'e> for Entity<'e> {
@@ -141,6 +147,46 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
         ancestors.push(*self);
         ancestors
     }
+
+    fn get_member_functions(
+        &self,
+        visibility: Access,
+        include_statics: Include,
+    ) -> Vec<Entity<'e>> {
+        self
+            .get_children()
+            .into_iter()
+            .filter(|child| {
+                (child.get_kind() == EntityKind::Method || child.get_kind() == EntityKind::FunctionTemplate)
+                    && match include_statics {
+                        Include::Members => !child.is_static_method(),
+                        Include::Statics => child.is_static_method(),
+                        Include::All => true,
+                    }
+                    && match child.get_accessibility() {
+                        Some(Accessibility::Protected)
+                        => matches!(visibility, Access::All | Access::Protected),
+                        Some(Accessibility::Public)
+                        => matches!(visibility, Access::All | Access::Public),
+                        _ => false,
+                    }
+            })
+            .collect()
+    }
+
+    fn get_function_arguments(&self) -> Option<Vec<Entity<'e>>> {
+        if !matches!(self.get_kind(), EntityKind::FunctionTemplate | EntityKind::FunctionDecl | EntityKind::Method) {
+            return None;
+        }
+        let mut args = vec![];
+        self.visit_children(|child, _| {
+            if child.get_kind() == EntityKind::ParmDecl {
+                args.push(child);
+            }
+            clang::EntityVisitResult::Continue
+        });
+        Some(args)
+    }
 }
 
 #[derive(Clone)]
@@ -157,7 +203,7 @@ impl SubItem {
         };
         match kind {
             CppItemKind::Class | CppItemKind::Struct => {
-                get_member_functions(entity, Access::All, Include::All)
+                entity.get_member_functions(Access::All, Include::All)
                     .into_iter()
                     .filter_map(|e| Some(SubItem {
                         title: e.get_name()?,
@@ -336,30 +382,4 @@ pub enum Include {
     All,
     Members,
     Statics,
-}
-
-pub fn get_member_functions<'e>(
-    entity: &Entity<'e>,
-    visibility: Access,
-    include_statics: Include,
-) -> Vec<Entity<'e>> {
-    entity
-        .get_children()
-        .into_iter()
-        .filter(|child| {
-            (child.get_kind() == EntityKind::Method || child.get_kind() == EntityKind::FunctionTemplate)
-                && match include_statics {
-                    Include::Members => !child.is_static_method(),
-                    Include::Statics => child.is_static_method(),
-                    Include::All => true,
-                }
-                && match child.get_accessibility() {
-                    Some(Accessibility::Protected)
-                    => matches!(visibility, Access::All | Access::Protected),
-                    Some(Accessibility::Public)
-                    => matches!(visibility, Access::All | Access::Public),
-                    _ => false,
-                }
-        })
-        .collect()
 }

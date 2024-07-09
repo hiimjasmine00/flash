@@ -1,5 +1,5 @@
 use super::builder::Builder;
-use super::traits::{ASTEntry, EntityMethods, Entry, get_member_functions, Include, Access};
+use super::traits::{ASTEntry, Access, EntityMethods, Entry, Include};
 use super::comment::JSDocComment;
 use super::namespace::CppItem;
 use crate::annotation::Annotations;
@@ -230,7 +230,7 @@ pub fn fmt_fun_decl(fun: &Entity, builder: &Builder) -> Html {
                 .with_child_opt(fmt_template_args(fun, builder))
                 .with_child(
                     HtmlElement::new("span").with_class("params").with_children(
-                        fun.get_arguments()
+                        fun.get_function_arguments()
                             .map(|args| {
                                 args.iter()
                                     .map(|arg| fmt_param(arg, builder))
@@ -418,7 +418,7 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
             "public_static_functions",
             fmt_section(
                 "Public static methods",
-                get_member_functions(entry.entity(), Access::Public, Include::Statics)
+                entry.entity().get_member_functions(Access::Public, Include::Statics)
                     .into_iter()
                     .map(|e| fmt_fun_decl(&e, builder))
                     .collect::<Vec<_>>(),
@@ -428,7 +428,7 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
             "public_member_functions",
             fmt_section(
                 "Public member functions",
-                get_member_functions(entry.entity(), Access::Public, Include::Members)
+                entry.entity().get_member_functions(Access::Public, Include::Members)
                     .into_iter()
                     .map(|e| fmt_fun_decl(&e, builder))
                     .collect::<Vec<_>>(),
@@ -439,7 +439,7 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
             "protected_member_functions",
             fmt_section(
                 "Protected member functions",
-                get_member_functions(entry.entity(), Access::Protected, Include::Members)
+                entry.entity().get_member_functions(Access::Protected, Include::Members)
                     .into_iter()
                     .map(|e| fmt_fun_decl(&e, builder))
                     .collect::<Vec<_>>(),

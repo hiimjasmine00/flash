@@ -171,12 +171,6 @@ fn fmt_template_args(entity: &Entity, _builder: &Builder) -> Option<Html> {
     if template_children.is_empty() {
         return None;
     }
-    if entity.get_name().unwrap_or_default().contains("add") {
-        let first = template_children.first().unwrap();
-        println!("{:?}", first);
-        let source = first.extract_source_string_cleaned().unwrap();
-        println!("{:?}", source);
-    }
     Some(HtmlElement::new("span")
         .with_class("template-params")
         .with_child(Html::span(&["keyword", "space-after"], "template"))

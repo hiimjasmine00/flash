@@ -163,27 +163,41 @@ fn fmt_param(param: &Entity, builder: &Builder) -> Html {
 }
 
 fn fmt_template_args(entity: &Entity, _builder: &Builder) -> Option<Html> {
-    let template_children = if entity.get_kind() == EntityKind::FunctionTemplate {
-        entity.get_children().into_iter().filter(|e| e.get_kind() == EntityKind::TemplateTypeParameter).collect()
-    } else {
-        entity.get_template()?.get_children()
-    };
-    Some(HtmlList::new(
-        template_children
-            .into_iter()
-            .map(|e|
-                HtmlText::new(e.get_name().unwrap_or("_".to_string())).into()
-            )
-            .collect::<Vec<_>>()
-            .insert_between(|| {
-                HtmlElement::new("span")
-                    .with_class("comma")
-                    .with_class("space-after")
-                    .with_child(HtmlText::new(","))
-                    .into()
-            })
-            .surround(HtmlText::new("<").into(), HtmlText::new(">").into()),
-    ).into())
+    let template_children: Vec<Entity> = entity
+        .get_children()
+        .into_iter()
+        .filter(|e| e.get_kind() == EntityKind::TemplateTypeParameter)
+        .collect();
+    if template_children.is_empty() {
+        return None;
+    }
+    if entity.get_name().unwrap_or_default().contains("add") {
+        let first = template_children.first().unwrap();
+        println!("{:?}", first);
+        let source = first.extract_source_string_cleaned().unwrap();
+        println!("{:?}", source);
+    }
+    Some(HtmlElement::new("span")
+        .with_class("template-params")
+        .with_child(Html::span(&["keyword", "space-after"], "template"))
+        .with_children(
+            template_children
+                .into_iter()
+                .map(|e|
+                    HtmlText::new(e.extract_source_string_cleaned().or_else(|| e.get_name().map(|x| format!("typename {x}"))).unwrap_or("_".into())).into()
+                )
+                .collect::<Vec<_>>()
+                .insert_between(|| {
+                    HtmlElement::new("span")
+                        .with_class("comma")
+                        .with_class("space-after")
+                        .with_child(HtmlText::new(","))
+                        .into()
+                })
+                .surround(HtmlText::new("<").into(), HtmlText::new(">").into()),
+        )
+        .into()
+    )
 }
 
 pub fn fmt_field(field: &Entity, builder: &Builder) -> Html {
@@ -213,46 +227,49 @@ pub fn fmt_fun_decl(fun: &Entity, builder: &Builder) -> Html {
         .with_child(
             HtmlElement::new("summary")
                 .with_classes(&["entity", "fun"])
-                .with_child_opt(
-                    fun.is_static_method()
-                        .then_some(Html::span(&["keyword", "space-after"], "static")),
-                )
-                .with_child_opt(
-                    fun.is_virtual_method()
-                        .then_some(Html::span(&["keyword", "space-after"], "virtual")),
-                )
-                .with_child_opt(fun.get_result_type().map(|t| fmt_type(&t, builder)))
-                .with_child(Html::span(
-                    &["name", "space-before"],
-                    &fun.get_name().unwrap_or("_anon".into()),
-                ))
                 .with_child_opt(fmt_template_args(fun, builder))
-                .with_child(
-                    HtmlElement::new("span").with_class("params").with_children(
-                        fun.get_function_arguments()
-                            .map(|args| {
-                                args.iter()
-                                    .map(|arg| fmt_param(arg, builder))
-                                    .collect::<Vec<_>>()
-                            })
-                            .unwrap_or(Vec::new())
-                            .insert_between(|| Html::span(&["comma", "space-after"], ","))
-                            .surround(HtmlText::new("(").into(), HtmlText::new(")").into()),
-                    ),
+                .with_child(HtmlElement::new("span")
+                    .with_class("function-signature")
+                    .with_child_opt(
+                        fun.is_static_method()
+                            .then_some(Html::span(&["keyword", "space-after"], "static")),
+                    )
+                    .with_child_opt(
+                        fun.is_virtual_method()
+                            .then_some(Html::span(&["keyword", "space-after"], "virtual")),
+                    )
+                    .with_child_opt(fun.get_result_type().map(|t| fmt_type(&t, builder)))
+                    .with_child(Html::span(
+                        &["name", "space-before"],
+                        &fun.get_name().unwrap_or("_anon".into()),
+                    ))
+                    .with_child(
+                        HtmlElement::new("span").with_class("params").with_children(
+                            fun.get_function_arguments()
+                                .map(|args| {
+                                    args.iter()
+                                        .map(|arg| fmt_param(arg, builder))
+                                        .collect::<Vec<_>>()
+                                })
+                                .unwrap_or(Vec::new())
+                                .insert_between(|| Html::span(&["comma", "space-after"], ","))
+                                .surround(HtmlText::new("(").into(), HtmlText::new(")").into()),
+                        ),
+                    )
+                    .with_child_opt(
+                        fun.is_const_method()
+                            .then_some(Html::span(&["keyword", "space-before"], "const")),
+                    )
+                    .with_child_opt(
+                        fun.is_pure_virtual_method().then_some::<Html>(
+                            HtmlList::new(vec![
+                                Html::span(&["space-before"], "="),
+                                Html::span(&["space-before", "literal"], "0"),
+                            ])
+                            .into(),
+                        )
+                    )
                 )
-                .with_child_opt(
-                    fun.is_const_method()
-                        .then_some(Html::span(&["keyword", "space-before"], "const")),
-                )
-                .with_child_opt(
-                    fun.is_pure_virtual_method().then_some::<Html>(
-                        HtmlList::new(vec![
-                            Html::span(&["space-before"], "="),
-                            Html::span(&["space-before", "literal"], "0"),
-                        ])
-                        .into(),
-                    ),
-                ),
         )
         .with_child(
             HtmlElement::new("div").with_child(

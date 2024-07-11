@@ -45,6 +45,13 @@ pub trait EntityMethods<'e> {
 
     /// Gets the function arguments for this method, including templated ones
     fn get_function_arguments(&self) -> Option<Vec<Entity<'e>>>;
+
+    /// Extracts the source code that makes up this entity, according to its range.
+    /// This might have to read a file from disk, and also includes whitespace and all
+    fn extract_source_string(&self) -> Option<String>;
+
+    /// Same as extract_source_string, but removes new lines, double spaces, and leading/trailing whitespace
+    fn extract_source_string_cleaned(&self) -> Option<String>;
 }
 
 impl<'e> EntityMethods<'e> for Entity<'e> {
@@ -186,6 +193,27 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
             clang::EntityVisitResult::Continue
         });
         Some(args)
+    }
+
+    fn extract_source_string(&self) -> Option<String> {
+        let range = self.get_range()?;
+        let start = range.get_start().get_file_location();
+        let end = range.get_end().get_file_location();
+        let contents = start.file?.get_contents()?;
+        contents.get(start.offset as usize..end.offset as usize).map(|s| s.into())
+    }
+
+    fn extract_source_string_cleaned(&self) -> Option<String> {
+        // TODO: this code is stupid and should be improved
+        Some(self.extract_source_string()?
+            .trim()
+            .replace('\t', " ")
+            .replace('\r', "")
+            .replace('\n', "")
+            .split(' ')
+            .filter(|x| !x.is_empty())
+            .intersperse(" ")
+            .collect())
     }
 }
 

@@ -571,12 +571,27 @@ details.entity-desc[open] > summary .feather-chevron-right {
     color: var(--flash-purple);
 }
 
-.entity.fun > .name {
-    color: var(--flash-blue);
-}
 
 .entity.var > .name {
     color: var(--flash-white);
+}
+
+.entity.fun {
+    flex-direction: column;
+}
+
+.entity.fun .template-declaration {
+    display: flex;
+    flex-direction: row;
+}
+
+.entity.fun .function-signature {
+    display: flex;
+    flex-direction: row;
+}
+
+.entity.fun .function-signature > .name {
+    color: var(--flash-blue);
 }
 
 .entity.fun .params {

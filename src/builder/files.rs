@@ -2,7 +2,7 @@
 use super::{
     builder::Builder,
     traits::{BuildResult, Entry, NavItem, OutputEntry, ASTEntry},
-    shared::{fmt_fun_decl, fmt_section, fmt_classlike_decl},
+    shared::{fmt_class_method, fmt_section, fmt_classlike_decl},
     namespace::CppItemKind
 };
 use crate::{
@@ -89,7 +89,7 @@ impl<'e> OutputEntry<'e> for File {
                                 ) && matcher(entry)
                             )
                             .into_iter()
-                            .map(|fun| fmt_fun_decl(fun.entity(), builder))
+                            .map(|fun| fmt_class_method(fun.entity(), builder))
                             .collect()
                     ),
                 ),

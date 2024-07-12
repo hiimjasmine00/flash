@@ -4,9 +4,7 @@ use crate::{html::Html, url::UrlPath};
 use clang::Entity;
 
 use super::{
-    traits::{ASTEntry, BuildResult, EntityMethods, Entry, NavItem, OutputEntry},
-    builder::Builder,
-    shared::output_entity,
+    builder::Builder, shared::{output_entity, output_function}, traits::{ASTEntry, BuildResult, EntityMethods, Entry, NavItem, OutputEntry}
 };
 
 pub struct Function<'e> {
@@ -53,7 +51,7 @@ impl<'e> OutputEntry<'e> for Function<'e> {
     fn output(&self, builder: &Builder<'e>) -> (Arc<String>, Vec<(&'static str, Html)>) {
         (
             builder.config.templates.function.clone(),
-            output_entity(self, builder),
+            output_function(self, builder),
         )
     }
 

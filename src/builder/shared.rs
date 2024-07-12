@@ -214,56 +214,61 @@ pub fn fmt_field(field: &Entity, builder: &Builder) -> Html {
         .into()
 }
 
-pub fn fmt_fun_decl(fun: &Entity, builder: &Builder) -> Html {
+fn fmt_fun_signature(fun: &Entity, builder: &Builder) -> Html {
+    HtmlElement::new("summary")
+        .with_classes(&["entity", "fun"])
+        .with_child_opt(fmt_template_args(fun, builder))
+        .with_child(HtmlElement::new("span")
+            .with_class("function-signature")
+            .with_child_opt(
+                fun.is_static_method()
+                    .then_some(Html::span(&["keyword", "space-after"], "static")),
+            )
+            .with_child_opt(
+                fun.is_virtual_method()
+                    .then_some(Html::span(&["keyword", "space-after"], "virtual")),
+            )
+            .with_child_opt(fun.get_result_type().map(|t| fmt_type(&t, builder)))
+            .with_child(Html::span(
+                &["name", "space-before"],
+                &fun.get_name().unwrap_or("_anon".into()),
+            ))
+            .with_child(
+                HtmlElement::new("span").with_class("params").with_children(
+                    fun.get_function_arguments()
+                        .map(|args| {
+                            args.iter()
+                                .map(|arg| fmt_param(arg, builder))
+                                .collect::<Vec<_>>()
+                        })
+                        .unwrap_or(Vec::new())
+                        .insert_between(|| Html::span(&["comma", "space-after"], ","))
+                        .surround(HtmlText::new("(").into(), HtmlText::new(")").into()),
+                ),
+            )
+            .with_child_opt(
+                fun.is_const_method()
+                    .then_some(Html::span(&["keyword", "space-before"], "const")),
+            )
+            .with_child_opt(
+                fun.is_pure_virtual_method().then_some::<Html>(
+                    HtmlList::new(vec![
+                        Html::span(&["space-before"], "="),
+                        Html::span(&["space-before", "literal"], "0"),
+                    ])
+                    .into(),
+                )
+            )
+        )
+        .into()
+}
+
+pub fn fmt_class_method(fun: &Entity, builder: &Builder) -> Html {
     HtmlElement::new("details")
         .with_class("entity-desc")
         .with_attr_opt("id", member_fun_link(fun))
         .with_child(
-            HtmlElement::new("summary")
-                .with_classes(&["entity", "fun"])
-                .with_child_opt(fmt_template_args(fun, builder))
-                .with_child(HtmlElement::new("span")
-                    .with_class("function-signature")
-                    .with_child_opt(
-                        fun.is_static_method()
-                            .then_some(Html::span(&["keyword", "space-after"], "static")),
-                    )
-                    .with_child_opt(
-                        fun.is_virtual_method()
-                            .then_some(Html::span(&["keyword", "space-after"], "virtual")),
-                    )
-                    .with_child_opt(fun.get_result_type().map(|t| fmt_type(&t, builder)))
-                    .with_child(Html::span(
-                        &["name", "space-before"],
-                        &fun.get_name().unwrap_or("_anon".into()),
-                    ))
-                    .with_child(
-                        HtmlElement::new("span").with_class("params").with_children(
-                            fun.get_function_arguments()
-                                .map(|args| {
-                                    args.iter()
-                                        .map(|arg| fmt_param(arg, builder))
-                                        .collect::<Vec<_>>()
-                                })
-                                .unwrap_or(Vec::new())
-                                .insert_between(|| Html::span(&["comma", "space-after"], ","))
-                                .surround(HtmlText::new("(").into(), HtmlText::new(")").into()),
-                        ),
-                    )
-                    .with_child_opt(
-                        fun.is_const_method()
-                            .then_some(Html::span(&["keyword", "space-before"], "const")),
-                    )
-                    .with_child_opt(
-                        fun.is_pure_virtual_method().then_some::<Html>(
-                            HtmlList::new(vec![
-                                Html::span(&["space-before"], "="),
-                                Html::span(&["space-before", "literal"], "0"),
-                            ])
-                            .into(),
-                        )
-                    )
-                )
+            fmt_fun_signature(fun, builder)
         )
         .with_child(
             HtmlElement::new("div").with_child(
@@ -430,7 +435,7 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
                 "Public static methods",
                 entry.entity().get_member_functions(Access::Public, Include::Statics)
                     .into_iter()
-                    .map(|e| fmt_fun_decl(&e, builder))
+                    .map(|e| fmt_class_method(&e, builder))
                     .collect::<Vec<_>>(),
             ),
         ),
@@ -440,7 +445,7 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
                 "Public member functions",
                 entry.entity().get_member_functions(Access::Public, Include::Members)
                     .into_iter()
-                    .map(|e| fmt_fun_decl(&e, builder))
+                    .map(|e| fmt_class_method(&e, builder))
                     .collect::<Vec<_>>(),
             ),
         ),
@@ -451,7 +456,7 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
                 "Protected member functions",
                 entry.entity().get_member_functions(Access::Protected, Include::Members)
                     .into_iter()
-                    .map(|e| fmt_fun_decl(&e, builder))
+                    .map(|e| fmt_class_method(&e, builder))
                     .collect::<Vec<_>>(),
             ),
         ),
@@ -487,6 +492,20 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
                     .collect::<Vec<_>>(),
             ),
         ),
+    ]);
+    ent
+}
+
+pub fn output_function<'e, T: ASTEntry<'e>>(
+    entry: &T,
+    builder: &Builder,
+) -> Vec<(&'static str, Html)> {
+    let mut ent = output_entity(entry, builder);
+    ent.extend(vec![
+        (
+            "function_signature",
+            fmt_fun_signature(entry.entity(), builder)
+        )
     ]);
     ent
 }

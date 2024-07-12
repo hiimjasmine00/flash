@@ -352,32 +352,36 @@ pub fn fmt_base_classes<'e, T: ASTEntry<'e>>(entry: &T, kw: &str, builder: &Buil
 
     HtmlElement::new("div")
         .with_classes(&["entity", "class"])
-        .with_child(Html::span(&["keyword", "space-after"], kw))
-        .with_child(Html::span(&["name"], entry.name().as_str()))
-        .with_child_opt((!bases.is_empty()).then_some(
-            Html::span(&["space-before", "space-after"], ":")
-        ))
-        .with_children(bases.into_iter()
-            .map(|base| HtmlList::new([
-                base.get_accessibility().map(|a|
-                    Html::span(
-                        &["keyword", "space-after"],
-                        match a {
-                            Accessibility::Public => "public",
-                            Accessibility::Private => "private",
-                            Accessibility::Protected => "protected",
-                        }
-                    )
-                ),
-                base.is_virtual_base().then_some(
-                    Html::span(&["keyword", "space-after"], "virtual")
-                ),
-                base.get_type().map(|ty| fmt_type(&ty, builder))
-            ].into_iter().flatten().collect()).into())
-            .intersperse_with(|| Html::span(&["space-after"], ",").into())
-            .collect()
+        .with_child_opt(fmt_template_args(entry.entity(), builder))
+        .with_child(HtmlElement::new("span")
+            .with_class("class-decl")
+            .with_child(Html::span(&["keyword", "space-after"], kw))
+            .with_child(Html::span(&["name"], entry.entity().get_name().unwrap_or("_".into()).as_str()))
+            .with_child_opt((!bases.is_empty()).then_some(
+                Html::span(&["space-before", "space-after"], ":")
+            ))
+            .with_children(bases.into_iter()
+                .map(|base| HtmlList::new([
+                    base.get_accessibility().map(|a|
+                        Html::span(
+                            &["keyword", "space-after"],
+                            match a {
+                                Accessibility::Public => "public",
+                                Accessibility::Private => "private",
+                                Accessibility::Protected => "protected",
+                            }
+                        )
+                    ),
+                    base.is_virtual_base().then_some(
+                        Html::span(&["keyword", "space-after"], "virtual")
+                    ),
+                    base.get_type().map(|ty| fmt_type(&ty, builder))
+                ].into_iter().flatten().collect()).into())
+                .intersperse_with(|| Html::span(&["space-after"], ",").into())
+                .collect()
+            )
+            .with_child(Html::span(&["space-before"], "{ ... }"))
         )
-        .with_child(Html::span(&["space-before"], "{ ... }"))
         .into()
 }
 

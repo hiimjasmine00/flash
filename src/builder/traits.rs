@@ -208,8 +208,7 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
         Some(self.extract_source_string()?
             .trim()
             .replace('\t', " ")
-            .replace('\r', "")
-            .replace('\n', "")
+            .replace(['\r', '\n'], "")
             .split(' ')
             .filter(|x| !x.is_empty())
             .intersperse(" ")
@@ -296,7 +295,6 @@ impl NavItem {
 
             NavItem::Dir(name, items, _, _) => items.iter()
                 .flat_map(|i| i.suboptions_titles(config.clone()))
-                .into_iter()
                 .map(|(t, count)| (format!("{}::{}", name, t), count))
                 .collect(),
             

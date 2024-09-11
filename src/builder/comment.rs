@@ -140,7 +140,7 @@ impl<'s> CommentLexer<'s> {
                             let value = self
                                 .eat_until(|c| matches!(c, ']' | ','))
                                 .map(|s| s.trim().to_owned())
-                                .unwrap_or(String::new());
+                                .unwrap_or_default();
 
                             attrs.insert(key, Some(value));
                         }

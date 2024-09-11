@@ -49,7 +49,7 @@ impl<'a> Annotations<'a> {
     pub fn next(&mut self) -> Option<String> {
         self.annotations.iter()
             .skip(self.next_in_iter)
-            .skip_while(|a| {
+            .find(|a| {
                 if a.value.is_some() {
                     self.next_in_iter += 1;
                     true
@@ -58,7 +58,6 @@ impl<'a> Annotations<'a> {
                     false
                 }
             })
-            .next()
             .inspect(|_| self.next_in_iter += 1)
             .map(|a| a.raw.clone())
     }

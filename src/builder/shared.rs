@@ -377,7 +377,7 @@ pub fn fmt_base_classes<'e, T: ASTEntry<'e>>(entry: &T, kw: &str, builder: &Buil
                     ),
                     base.get_type().map(|ty| fmt_type(&ty, builder))
                 ].into_iter().flatten().collect()).into())
-                .intersperse_with(|| Html::span(&["space-after"], ",").into())
+                .intersperse_with(|| Html::span(&["space-after"], ","))
                 .collect()
             )
             .with_child(Html::span(&["space-before"], "{ ... }"))
@@ -514,10 +514,10 @@ pub fn output_function<'e, T: ASTEntry<'e>>(
     ent
 }
 
-fn fmt_autolinks_recursive<'a>(
+fn fmt_autolinks_recursive(
     entity: &CppItem,
     config: Arc<Config>,
-    annotations: &mut Annotations<'a>,
+    annotations: &mut Annotations<'_>,
     prefix: &Option<char>,
 ) {
     annotations.rewind();
@@ -590,5 +590,5 @@ pub fn fmt_emoji(text: &CowStr) -> String {
 }
 
 pub fn member_fun_link(entity: &Entity) -> Option<String> {
-    Some(entity.get_name()?)
+    entity.get_name()
 }

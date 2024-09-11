@@ -132,7 +132,7 @@ impl HtmlElement {
     }
 
     pub fn attr_mut(&mut self, attr: &str) -> &mut String {
-        self.attributes.entry(attr.into()).or_insert(String::new())
+        self.attributes.entry(attr.into()).or_default()
     }
 
     pub fn with_attrs(mut self, attrs: &Vec<(String, String)>) -> Self {

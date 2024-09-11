@@ -20,7 +20,7 @@ pub enum CppItemKind {
 }
 
 impl CppItemKind {
-    pub fn from<'e>(entity: &Entity<'e>) -> Option<Self> {
+    pub fn from(entity: &Entity) -> Option<Self> {
         match entity.get_kind() {
             EntityKind::StructDecl => Some(Self::Struct),
             EntityKind::ClassDecl | EntityKind::ClassTemplate | EntityKind::ClassTemplatePartialSpecialization => Some(Self::Class),

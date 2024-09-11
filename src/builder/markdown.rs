@@ -45,7 +45,7 @@ impl Metadata {
     }
 }
 
-fn parse_markdown_metadata<'a>(doc: &'a str) -> (&'a str, Option<Metadata>) {
+fn parse_markdown_metadata(doc: &str) -> (&str, Option<Metadata>) {
     // if the document has no metadata just parse it as markdown
     if !doc.trim_start().starts_with("---") {
         return (doc, None);
@@ -83,7 +83,7 @@ struct MDStream<'i, 'c, 'b, 'e, const SIZE: usize, F: Fn(UrlPath) -> Option<UrlP
 }
 
 impl<
-    'i, 'c, 'b, 'e, 'm, 
+    'i, 'c, 'b, 'e, 
     const SIZE: usize,
     F: Fn(UrlPath) -> Option<UrlPath>,
 > MDStream<'i, 'c, 'b, 'e, SIZE, F> {
@@ -124,9 +124,7 @@ impl<
             self.insert_para_stage = InsertP::Dont;
             return Some(Event::End(Tag::BlockQuote));
         }
-        let Some(event) = self.iter.next() else {
-            return None;
-        };
+        let event = self.iter.next()?;
         Some(match event {
             // Don't format emojis inside code blocks lol
             Event::Text(t) => if self.inside_code_block {
@@ -205,7 +203,7 @@ impl<
                             }
                         }
                         // replace spaces with single hyphens
-                        buf = buf.trim()
+                        buf = buf
                             .split_whitespace()
                             .collect::<Vec<_>>()
                             .join("-");
@@ -314,18 +312,11 @@ pub fn extract_metadata_from_md(text: &String, default_title: Option<String>) ->
         Some(metadata)
     }
     // otherwise only return Some if a title was found
+    else if res.is_empty() {
+        default_title.map(Metadata::new_with_title)
+    }
     else {
-        if res.is_empty() {
-            if let Some(title) = default_title {
-                Some(Metadata::new_with_title(title))
-            }
-            else {
-                None
-            }
-        }
-        else {
-            Some(Metadata::new_with_title(res))
-        }
+        Some(Metadata::new_with_title(res))
     }
 }
 
@@ -341,7 +332,7 @@ pub fn output_tutorial<'e, T: Entry<'e>>(
             "content",
             fmt_markdown(
                 builder,
-                &content,
+                content,
                 Some(|url: UrlPath| {
                     Some(url.remove_extension(".md"))
                 }),

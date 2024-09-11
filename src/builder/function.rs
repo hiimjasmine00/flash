@@ -4,7 +4,9 @@ use crate::{html::Html, url::UrlPath};
 use clang::Entity;
 
 use super::{
-    builder::Builder, shared::{output_entity, output_function}, traits::{ASTEntry, BuildResult, EntityMethods, Entry, NavItem, OutputEntry}
+    builder::Builder,
+    shared::output_function,
+    traits::{ASTEntry, BuildResult, EntityMethods, Entry, NavItem, OutputEntry}
 };
 
 pub struct Function<'e> {

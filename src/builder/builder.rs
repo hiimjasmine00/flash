@@ -56,7 +56,7 @@ impl<'e> Builder<'e> {
         // transpile, minify, and copy JS
         for script in &self.config.scripts.js {
             fs::write(
-                &self.config.output_dir.join(&script.name),
+                self.config.output_dir.join(&script.name),
                 minify_js(script.content.to_string())?,
             ).map_err(|e| format!("Unable to copy {}: {e}", script.name))?;
         }
@@ -264,7 +264,7 @@ impl<'e> Builder<'e> {
         }
 
         fs::write(
-            &self.config.output_dir.join("functions.json"),
+            self.config.output_dir.join("functions.json"),
             serde_json::to_string(
                 &self.root.nav().suboptions_titles(self.config.clone())
                     .into_iter()
@@ -315,7 +315,7 @@ fn default_format(config: Arc<Config>) -> HashMap<String, String> {
         ("project_version".into(), config.project.version.clone()),
         (
             "project_repository".into(),
-            config.project.repository.clone().unwrap_or(String::new()),
+            config.project.repository.clone().unwrap_or_default(),
         ),
         (
             "project_icon".into(),
@@ -330,7 +330,7 @@ fn default_format(config: Arc<Config>) -> HashMap<String, String> {
                         .as_ref()
                         .unwrap_or(&UrlPath::new())
                 )))
-                .unwrap_or(String::new()),
+                .unwrap_or_default(),
         ),
         (
             "output_url".into(),

@@ -155,7 +155,7 @@ impl UrlPath {
     }
 
     pub fn is_absolute(&self, config: Arc<Config>) -> bool {
-        self.starts_with(&config.output_url.as_ref().unwrap_or(&UrlPath::new()))
+        self.starts_with(config.output_url.as_ref().unwrap_or(&UrlPath::new()))
     }
 
     pub fn is_empty(&self) -> bool {

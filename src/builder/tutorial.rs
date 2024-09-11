@@ -32,7 +32,7 @@ impl Tutorial {
             metadata: extract_metadata_from_md(
                 &unparsed_content,
                 path.remove_extension(".md").raw_file_name()
-            ).unwrap(),
+            ).unwrap_or_default(),
             unparsed_content,
             path,
         }
@@ -103,11 +103,7 @@ impl TutorialFolder {
         let mut tutorials = HashMap::new();
 
         let stripped_path = path
-            .strip_prefix(
-                &config
-                    .input_dir
-                    .join(&config.tutorials.as_ref().unwrap().dir),
-            )
+            .strip_prefix(config.input_dir.join(&config.tutorials.as_ref().unwrap().dir))
             .unwrap_or(path)
             .to_path_buf();
 
@@ -134,15 +130,12 @@ impl TutorialFolder {
                 }
             {
                 let stripped_path = path
-                    .strip_prefix(
-                        &config
-                            .input_dir
-                            .join(&config.tutorials.as_ref().unwrap().dir),
-                    )
+                    .strip_prefix(config.input_dir.join(&config.tutorials.as_ref().unwrap().dir))
                     .unwrap_or(&path)
                     .to_path_buf();
 
                 let Ok(url) = UrlPath::try_from(&stripped_path) else { continue; };
+                println!("creating tutorial for {}", url);
                 let tut = Tutorial::new(config.clone(), url);
                 tutorials.insert(tut.name(), tut);
             }
@@ -195,7 +188,7 @@ impl TutorialFolder {
                 (Some(a), Some(b)) => a.cmp(&b),
                 (Some(_), None) => Ordering::Less,
                 (None, Some(_)) => Ordering::Greater,
-                (None, None) => a.0.cmp(&b.0),
+                (None, None) => a.0.cmp(b.0),
             }
         });
         vec.into_iter().map(|(_, v)| v).collect()
@@ -208,7 +201,7 @@ impl TutorialFolder {
                 (Some(a), Some(b)) => a.cmp(&b),
                 (Some(_), None) => Ordering::Less,
                 (None, Some(_)) => Ordering::Greater,
-                (None, None) => a.0.cmp(&b.0),
+                (None, None) => a.0.cmp(b.0),
             }
         });
         vec.into_iter().map(|(_, v)| v).collect()
@@ -281,7 +274,7 @@ impl<'e> OutputEntry<'e> for TutorialFolder {
             output_tutorial(
                 self,
                 builder,
-                self.index.as_ref().map(|s| s.as_str()).unwrap_or(""),
+                self.index.as_deref().unwrap_or(""),
                 fmt_section(
                     "Pages",
                     self.tutorials_sorted()
@@ -290,7 +283,7 @@ impl<'e> OutputEntry<'e> for TutorialFolder {
                             HtmlElement::new("ul")
                                 .with_child(HtmlElement::new("li").with_child(
                                     HtmlElement::new("a")
-                                        .with_text(&tut.name())
+                                        .with_text(tut.name())
                                         .with_attr(
                                             "href",
                                             tut.url().to_absolute(builder.config.clone()),

@@ -11,8 +11,8 @@ pub struct CachedLookahead<I: Iterator, const SIZE: usize> {
 impl<I: Iterator, const SIZE: usize> CachedLookahead<I, SIZE> {
     pub fn new(mut iter: I) -> Self {
         let mut next_items: [Option<I::Item>; SIZE] = [(); SIZE].map(|_| None);
-        for i in 0..SIZE {
-            next_items[i] = iter.next();
+        for item in next_items.iter_mut().take(SIZE) {
+            *item = iter.next();
         }
         Self { iter, next_items }
     }

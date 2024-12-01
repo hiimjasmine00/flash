@@ -18,9 +18,7 @@ jobs:
     runs-on: ${{ matrix.config.os }}
 
     steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: recursive
+    - uses: actions/checkout@v4
 
     - uses: actions-rs/toolchain@v1
       with:
@@ -45,7 +43,7 @@ jobs:
         mv ${{ matrix.config.out_paths }} ./out
         
     - name: Upload Artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.config.name }} Flash Binary
         path: ./out/

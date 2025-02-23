@@ -168,6 +168,22 @@ impl<'e> Namespace<'e> {
         ret
     }
 
+    fn merge_with_namespace(&mut self, other: Namespace<'e>) {
+        assert_eq!(self.entity.get_name(), other.entity.get_name());
+        for (name, other_entry) in other.entries {
+            if matches!(other_entry, CppItem::Namespace(_))
+                && let Some(CppItem::Namespace(ns)) = self.entries.get_mut(&name)
+            {
+                let CppItem::Namespace(entry_ns) = other_entry else {
+                    unreachable!()
+                };
+                ns.merge_with_namespace(entry_ns);
+            } else {
+                self.entries.insert(name, other_entry);
+            }
+        }
+    }
+
     fn load_entries(&mut self, config: Arc<Config>) {
         for child in &self.entity.get_children() {
             // skip unnamed items
@@ -194,14 +210,11 @@ impl<'e> Namespace<'e> {
                 match kind {
                     CppItemKind::Namespace => {
                         let entry = Namespace::new(*child, config.clone());
-                        // Merge existing entries of namespace
-                        if let Some(key) = self.entries.get_mut(&entry.name()) {
-                            if let CppItem::Namespace(ns) = key {
-                                ns.entries.extend(entry.entries);
-                            }
-                        }
-                        // Insert new namespace
-                        else {
+                        // if we have some namespace with the same name
+                        if let Some(CppItem::Namespace(ns)) = self.entries.get_mut(&entry.name()) {
+                            ns.merge_with_namespace(entry);
+                        } else {
+                            // Insert new namespace
                             self.entries.insert(entry.name(), CppItem::Namespace(entry));
                         }
                     }

@@ -3,13 +3,13 @@ use crate::{
     html::{Html, HtmlElement},
     url::UrlPath,
 };
-use std::{collections::HashMap, ffi::OsStr, fs, path::PathBuf, sync::Arc, cmp::Ordering};
+use std::{cmp::Ordering, collections::HashMap, ffi::OsStr, fs, path::PathBuf, sync::Arc};
 
 use super::{
-    traits::{BuildResult, Entry, NavItem, OutputEntry},
     builder::Builder,
-    shared::fmt_section,
     markdown::{extract_metadata_from_md, output_tutorial, Metadata},
+    shared::fmt_section,
+    traits::{BuildResult, Entry, NavItem, OutputEntry},
 };
 
 pub struct Tutorial {
@@ -31,8 +31,9 @@ impl Tutorial {
         Self {
             metadata: extract_metadata_from_md(
                 &unparsed_content,
-                path.remove_extension(".md").raw_file_name()
-            ).unwrap_or_default(),
+                path.remove_extension(".md").raw_file_name(),
+            )
+            .unwrap_or_default(),
             unparsed_content,
             path,
         }
@@ -57,9 +58,11 @@ impl<'e> Entry<'e> for Tutorial {
             self.metadata.title.as_ref().unwrap(),
             self.url(),
             Some(
-                self.metadata.icon.as_ref()
+                self.metadata
+                    .icon
+                    .as_ref()
                     .map(|i| (i.as_str(), false))
-                    .unwrap_or(("bookmark", false))
+                    .unwrap_or(("bookmark", false)),
             ),
             Vec::new(),
         )
@@ -74,16 +77,16 @@ impl<'e> OutputEntry<'e> for Tutorial {
                 self,
                 builder,
                 &self.unparsed_content,
-                Html::Raw(String::new())
-            )
+                Html::Raw(String::new()),
+            ),
         )
     }
 
     fn description(&self, builder: &'e Builder<'e>) -> String {
-        self.metadata.description.clone().unwrap_or(format!(
-            "Tutorial for {}",
-            builder.config.project.name
-        ))
+        self.metadata
+            .description
+            .clone()
+            .unwrap_or(format!("Tutorial for {}", builder.config.project.name))
     }
 }
 
@@ -103,14 +106,22 @@ impl TutorialFolder {
         let mut tutorials = HashMap::new();
 
         let stripped_path = path
-            .strip_prefix(config.input_dir.join(&config.tutorials.as_ref().unwrap().dir))
+            .strip_prefix(
+                config
+                    .input_dir
+                    .join(&config.tutorials.as_ref().unwrap().dir),
+            )
             .unwrap_or(path)
             .to_path_buf();
 
         // find tutorials (markdown files)
         for file in fs::read_dir(path).ok()? {
-            let Ok(file) = file else { continue; };
-            let Ok(ty) = file.file_type() else { continue; };
+            let Ok(file) = file else {
+                continue;
+            };
+            let Ok(ty) = file.file_type() else {
+                continue;
+            };
             let path = file.path();
 
             // if this is a directory, add it only if it has tutorials
@@ -130,11 +141,17 @@ impl TutorialFolder {
                 }
             {
                 let stripped_path = path
-                    .strip_prefix(config.input_dir.join(&config.tutorials.as_ref().unwrap().dir))
+                    .strip_prefix(
+                        config
+                            .input_dir
+                            .join(&config.tutorials.as_ref().unwrap().dir),
+                    )
                     .unwrap_or(&path)
                     .to_path_buf();
 
-                let Ok(url) = UrlPath::try_from(&stripped_path) else { continue; };
+                let Ok(url) = UrlPath::try_from(&stripped_path) else {
+                    continue;
+                };
                 println!("creating tutorial for {}", url);
                 let tut = Tutorial::new(config.clone(), url);
                 tutorials.insert(tut.name(), tut);
@@ -152,7 +169,9 @@ impl TutorialFolder {
             is_root: false,
             is_open: depth < 2,
             path: UrlPath::try_from(&stripped_path).ok()?,
-            metadata: index.as_ref().and_then(|i| extract_metadata_from_md(i, None)),
+            metadata: index
+                .as_ref()
+                .and_then(|i| extract_metadata_from_md(i, None)),
             index,
             folders,
             tutorials,
@@ -160,15 +179,13 @@ impl TutorialFolder {
     }
 
     pub fn from_config(config: Arc<Config>) -> Self {
-        if let Some(ref tutorials) = config.tutorials &&
-            let Some(mut res) = Self::from_folder(
-                config.clone(), &config.input_dir.join(&tutorials.dir), 0
-            )
+        if let Some(ref tutorials) = config.tutorials
+            && let Some(mut res) =
+                Self::from_folder(config.clone(), &config.input_dir.join(&tutorials.dir), 0)
         {
             res.is_root = true;
             res
-        }
-        else {
+        } else {
             Self {
                 is_root: true,
                 is_open: true,
@@ -184,7 +201,10 @@ impl TutorialFolder {
     pub fn folders_sorted(&self) -> Vec<&TutorialFolder> {
         let mut vec = self.folders.iter().collect::<Vec<_>>();
         vec.sort_unstable_by(|a, b| {
-            match (a.1.metadata.clone().and_then(|x| x.order), b.1.metadata.clone().and_then(|x| x.order)) {
+            match (
+                a.1.metadata.clone().and_then(|x| x.order),
+                b.1.metadata.clone().and_then(|x| x.order),
+            ) {
                 (Some(a), Some(b)) => a.cmp(&b),
                 (Some(_), None) => Ordering::Less,
                 (None, Some(_)) => Ordering::Greater,
@@ -196,13 +216,11 @@ impl TutorialFolder {
 
     pub fn tutorials_sorted(&self) -> Vec<&Tutorial> {
         let mut vec = self.tutorials.iter().collect::<Vec<_>>();
-        vec.sort_unstable_by(|a, b| {
-            match (a.1.metadata.order, b.1.metadata.order) {
-                (Some(a), Some(b)) => a.cmp(&b),
-                (Some(_), None) => Ordering::Less,
-                (None, Some(_)) => Ordering::Greater,
-                (None, None) => a.0.cmp(b.0),
-            }
+        vec.sort_unstable_by(|a, b| match (a.1.metadata.order, b.1.metadata.order) {
+            (Some(a), Some(b)) => a.cmp(&b),
+            (Some(_), None) => Ordering::Less,
+            (None, Some(_)) => Ordering::Greater,
+            (None, None) => a.0.cmp(b.0),
         });
         vec.into_iter().map(|(_, v)| v).collect()
     }
@@ -254,7 +272,8 @@ impl<'e> Entry<'e> for TutorialFolder {
                     .map(|e| e.nav())
                     .chain(self.folders_sorted().iter().map(|e| e.nav()))
                     .collect::<Vec<_>>(),
-                self.metadata.as_ref()
+                self.metadata
+                    .as_ref()
                     .and_then(|m| m.icon.as_ref())
                     .map(|i| (i.as_str(), false)),
                 self.is_open,
@@ -282,33 +301,27 @@ impl<'e> OutputEntry<'e> for TutorialFolder {
                         .map(|tut| {
                             HtmlElement::new("ul")
                                 .with_child(HtmlElement::new("li").with_child(
-                                    HtmlElement::new("a")
-                                        .with_text(tut.name())
-                                        .with_attr(
-                                            "href",
-                                            tut.url().to_absolute(builder.config.clone()),
-                                        ),
+                                    HtmlElement::new("a").with_text(tut.name()).with_attr(
+                                        "href",
+                                        tut.url().to_absolute(builder.config.clone()),
+                                    ),
                                 ))
                                 .into()
                         })
                         .collect(),
-                )
-            )
+                ),
+            ),
         )
     }
 
     fn description(&self, builder: &'e Builder<'e>) -> String {
         if self.is_root {
             format!("Documentation for {}", builder.config.project.name)
-        }
-        else {
+        } else {
             self.metadata
                 .clone()
                 .and_then(|m| m.description)
-                .unwrap_or(format!(
-                    "Tutorials for {}",
-                    builder.config.project.name
-                ))
+                .unwrap_or(format!("Tutorials for {}", builder.config.project.name))
         }
     }
 }

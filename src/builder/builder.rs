@@ -7,11 +7,19 @@ use tokio::task::JoinHandle;
 
 use crate::{
     config::Config,
-    html::{GenHtml, Html, process::{minify_js, minify_css, minify_html}},
+    html::{
+        process::{minify_css, minify_html, minify_js},
+        GenHtml, Html,
+    },
     url::UrlPath,
 };
 
-use super::{files::Root, namespace::Namespace, tutorial::TutorialFolder, traits::{OutputEntry, BuildResult, Entry}};
+use super::{
+    files::Root,
+    namespace::Namespace,
+    traits::{BuildResult, Entry, OutputEntry},
+    tutorial::TutorialFolder,
+};
 
 pub struct Builder<'e> {
     pub config: Arc<Config>,
@@ -51,7 +59,8 @@ impl<'e> Builder<'e> {
             fs::write(
                 self.config.output_dir.join(&script.name),
                 minify_css(script.content.to_string())?,
-            ).map_err(|e| format!("Unable to copy {}: {e}", script.name))?;
+            )
+            .map_err(|e| format!("Unable to copy {}: {e}", script.name))?;
         }
 
         // transpile, minify, and copy JS
@@ -59,7 +68,8 @@ impl<'e> Builder<'e> {
             fs::write(
                 self.config.output_dir.join(&script.name),
                 minify_js(script.content.to_string())?,
-            ).map_err(|e| format!("Unable to copy {}: {e}", script.name))?;
+            )
+            .map_err(|e| format!("Unable to copy {}: {e}", script.name))?;
         }
 
         // copy icon
@@ -72,12 +82,12 @@ impl<'e> Builder<'e> {
 
             let mut icon_dir = ico::IconDir::new(ico::ResourceType::Icon);
             let ico = ico::IconImage::read_png(
-                std::fs::File::open(self.config.input_dir.join(icon)).unwrap()
-            ).map_err(|e| format!("Icon doesn't appear to be a valid .png: {e}"))?;
+                std::fs::File::open(self.config.input_dir.join(icon)).unwrap(),
+            )
+            .map_err(|e| format!("Icon doesn't appear to be a valid .png: {e}"))?;
             icon_dir.add_entry(ico::IconDirEntry::encode(&ico).unwrap());
-            let ico_file = std::fs::File::create(
-                self.config.output_dir.join("favicon.ico"),
-            ).unwrap();
+            let ico_file =
+                std::fs::File::create(self.config.output_dir.join("favicon.ico")).unwrap();
             icon_dir.write(ico_file).unwrap();
         }
 
@@ -85,25 +95,27 @@ impl<'e> Builder<'e> {
         if let Some(ref tutorials) = self.config.tutorials {
             for asset in &tutorials.assets {
                 let output = self.config.output_dir.join(
-                    // if the tutorials are in docs and the assets are in 
-                    // docs/assets, then they are probably referenced with 
-                    // just assets/image.png so we should strip the docs 
+                    // if the tutorials are in docs and the assets are in
+                    // docs/assets, then they are probably referenced with
+                    // just assets/image.png so we should strip the docs
                     // part
-                    asset.strip_prefix(&tutorials.dir).unwrap_or(asset)
+                    asset.strip_prefix(&tutorials.dir).unwrap_or(asset),
                 );
                 if let Some(parent) = output.parent() {
-                    fs::create_dir_all(self.config.output_dir.join(parent))
-                    .map_err(|e| format!(
-                        "Unable to create asset directory '{}': {e}",
-                        output.to_string_lossy()
-                    ))?;
+                    fs::create_dir_all(self.config.output_dir.join(parent)).map_err(|e| {
+                        format!(
+                            "Unable to create asset directory '{}': {e}",
+                            output.to_string_lossy()
+                        )
+                    })?;
                 }
-                fs::copy(self.config.input_dir.join(asset), output)
-                .map_err(|e| format!(
-                    "Unable to copy asset '{}': {e}, {}",
-                    asset.to_string_lossy(),
-                    self.config.input_dir.join(asset).to_string_lossy(),
-                ))?;
+                fs::copy(self.config.input_dir.join(asset), output).map_err(|e| {
+                    format!(
+                        "Unable to copy asset '{}': {e}, {}",
+                        asset.to_string_lossy(),
+                        self.config.input_dir.join(asset).to_string_lossy(),
+                    )
+                })?;
             }
         }
 
@@ -159,7 +171,7 @@ impl<'e> Builder<'e> {
 
             let content = minify_html(
                 strfmt(&template, &fmt)
-                .map_err(|e| format!("Unable to format {target_url}: {e}"))?
+                    .map_err(|e| format!("Unable to format {target_url}: {e}"))?,
             )?;
 
             let mut page = default_format(config.clone());
@@ -174,9 +186,9 @@ impl<'e> Builder<'e> {
             ]));
             let page = minify_html(
                 strfmt(&config.templates.page, &page)
-                .map_err(|e| format!("Unable to format {target_url}: {e}"))?
+                    .map_err(|e| format!("Unable to format {target_url}: {e}"))?,
             )?;
-            
+
             let output_dir = config.output_dir.join(target_url.to_pathbuf());
 
             // Make sure output directory exists
@@ -189,8 +201,9 @@ impl<'e> Builder<'e> {
                 format!(
                     r#"{{"title": "{}", "description": "{}"}}"#,
                     title, description,
-                )
-            ).map_err(|e| format!("Unable to save metadata for {target_url}: {e}"))?;
+                ),
+            )
+            .map_err(|e| format!("Unable to save metadata for {target_url}: {e}"))?;
 
             // Write the plain content output
             fs::write(
@@ -267,14 +280,29 @@ impl<'e> Builder<'e> {
         fs::write(
             self.config.output_dir.join("functions.json"),
             serde_json::to_string(
-                &self.root.nav().suboptions_titles(self.config.clone())
+                &self
+                    .root
+                    .nav()
+                    .suboptions_titles(self.config.clone())
                     .into_iter()
-                    .map(|(n, c)| if c > 0 { format!("{} ({})", n, c + 1) } else { n })
-                    .collect::<Vec<_>>()
-            ).map_err(|e| format!("Unable to save metadata {e}"))?
-        ).map_err(|e| format!("Unable to save metadata {e}"))?;
+                    .map(|(n, c)| {
+                        if c > 0 {
+                            format!("{} ({})", n, c + 1)
+                        } else {
+                            n
+                        }
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .map_err(|e| format!("Unable to save metadata {e}"))?,
+        )
+        .map_err(|e| format!("Unable to save metadata {e}"))?;
 
-        fs::write(self.config.output_dir.join("nav.json"), serde_json::to_string(&self.build_nav_metadata()).unwrap()).unwrap();
+        fs::write(
+            self.config.output_dir.join("nav.json"),
+            serde_json::to_string(&self.build_nav_metadata()).unwrap(),
+        )
+        .unwrap();
 
         Ok(())
     }
@@ -319,10 +347,7 @@ fn default_format(config: Arc<Config>) -> HashMap<String, String> {
                 .as_ref()
                 .and(Some(format!(
                     "<img src=\"{}/icon.png\">",
-                    config
-                        .output_url
-                        .as_ref()
-                        .unwrap_or(&UrlPath::new())
+                    config.output_url.as_ref().unwrap_or(&UrlPath::new())
                 )))
                 .unwrap_or_default(),
         ),

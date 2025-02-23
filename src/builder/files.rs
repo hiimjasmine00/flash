@@ -1,9 +1,8 @@
-
 use super::{
     builder::Builder,
-    traits::{BuildResult, Entry, NavItem, OutputEntry, ASTEntry},
-    shared::{fmt_class_method, fmt_section, fmt_classlike_decl},
-    namespace::CppItemKind
+    namespace::CppItemKind,
+    shared::{fmt_class_method, fmt_classlike_decl, fmt_section},
+    traits::{ASTEntry, BuildResult, Entry, NavItem, OutputEntry},
 };
 use crate::{
     config::{Config, Source},
@@ -44,13 +43,17 @@ impl<'e> Entry<'e> for File {
 impl<'e> OutputEntry<'e> for File {
     fn output(&self, builder: &'e Builder<'e>) -> (Arc<String>, Vec<(&'static str, Html)>) {
         let matcher = |entry: &dyn ASTEntry<'e>| -> bool {
-            entry.entity().get_location()
+            entry
+                .entity()
+                .get_location()
                 .and_then(|file| file.get_file_location().file)
-                .is_some_and(|file|
-                    file.get_path() == builder.config.input_dir.join(
-                        self.source.dir.join(&self.path).to_raw_string()
-                    )
-                )
+                .is_some_and(|file| {
+                    file.get_path()
+                        == builder
+                            .config
+                            .input_dir
+                            .join(self.source.dir.join(&self.path).to_raw_string())
+                })
         };
 
         (
@@ -67,7 +70,8 @@ impl<'e> OutputEntry<'e> for File {
                             .tree
                             .as_ref()
                             .map(|tree| {
-                                tree.to_owned() + self.source.dir.join(&self.path).to_string().as_str()
+                                tree.to_owned()
+                                    + self.source.dir.join(&self.path).to_string().as_str()
                             })
                             .unwrap_or("".into()),
                     )
@@ -81,59 +85,61 @@ impl<'e> OutputEntry<'e> for File {
                     "functions",
                     fmt_section(
                         "Functions",
-                        builder.root
-                            .get(&|entry| 
+                        builder
+                            .root
+                            .get(&|entry| {
                                 matches!(
                                     CppItemKind::from(entry.entity()),
                                     Some(CppItemKind::Function)
                                 ) && matcher(entry)
-                            )
+                            })
                             .into_iter()
                             .map(|fun| fmt_class_method(fun.entity(), builder))
-                            .collect()
+                            .collect(),
                     ),
                 ),
                 (
                     "classes",
                     fmt_section(
                         "Classes",
-                        builder.root
-                            .get(&|entry| 
+                        builder
+                            .root
+                            .get(&|entry| {
                                 matches!(
                                     CppItemKind::from(entry.entity()),
                                     Some(CppItemKind::Class)
                                 ) && matcher(entry)
-                            )
+                            })
                             .into_iter()
                             .map(|cls| fmt_classlike_decl(cls.entity(), "class", builder))
-                            .collect()
+                            .collect(),
                     ),
                 ),
                 (
                     "structs",
                     fmt_section(
                         "Structs",
-                        builder.root
-                            .get(&|entry| 
+                        builder
+                            .root
+                            .get(&|entry| {
                                 matches!(
                                     CppItemKind::from(entry.entity()),
                                     Some(CppItemKind::Struct)
                                 ) && matcher(entry)
-                            )
+                            })
                             .into_iter()
                             .map(|cls| fmt_classlike_decl(cls.entity(), "struct", builder))
-                            .collect()
+                            .collect(),
                     ),
                 ),
             ],
         )
     }
-    
+
     fn description(&self, builder: &'e Builder<'e>) -> String {
         format!(
             "Documentation for {} in {}",
-            self.path,
-            builder.config.project.name
+            self.path, builder.config.project.name
         )
     }
 }

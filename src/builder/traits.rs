@@ -1,7 +1,7 @@
-use clang::{Entity, EntityKind, Accessibility};
+use clang::{Accessibility, Entity, EntityKind};
 use serde_json::json;
 
-use std::{path::PathBuf, sync::Arc, collections::HashMap};
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use tokio::task::JoinHandle;
 
@@ -11,7 +11,7 @@ use crate::{
     url::UrlPath,
 };
 
-use super::{namespace::CppItemKind, builder::Builder, shared::member_fun_link};
+use super::{builder::Builder, namespace::CppItemKind, shared::member_fun_link};
 
 pub trait EntityMethods<'e> {
     /// Get the config source for this entity
@@ -42,7 +42,8 @@ pub trait EntityMethods<'e> {
     fn ancestorage(&self) -> Vec<Entity<'e>>;
 
     /// Gets all the member functions from this entity, assuming it is a class-like entity
-    fn get_member_functions(&self, visibility: Access, include_statics: Include) -> Vec<Entity<'e>>;
+    fn get_member_functions(&self, visibility: Access, include_statics: Include)
+        -> Vec<Entity<'e>>;
 
     /// Gets the function arguments for this method, including templated ones
     fn get_function_arguments(&self) -> Option<Vec<Entity<'e>>>;
@@ -67,7 +68,8 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
         config
             .sources
             .iter()
-            .find(|src| path.starts_with(src.dir.to_pathbuf())).cloned()
+            .find(|src| path.starts_with(src.dir.to_pathbuf()))
+            .cloned()
     }
 
     fn definition_file(&self) -> Option<PathBuf> {
@@ -91,7 +93,7 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
         Some(
             CppItemKind::from(self)?
                 .docs_category()
-                .join(UrlPath::new_with_path(self.full_name()))
+                .join(UrlPath::new_with_path(self.full_name())),
         )
     }
 
@@ -111,20 +113,32 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
 
     fn github_url(&self, config: Arc<Config>) -> Option<String> {
         if self.full_name().first().is_some_and(|n| n == "std") {
-            unreachable!("Shouldn't be trying to link to a stl header - {:?}", self.get_name())
+            unreachable!(
+                "Shouldn't be trying to link to a stl header - {:?}",
+                self.get_name()
+            )
         } else if let Some(lib) = self.get_allowed_external_lib(config.clone()) {
             Some(lib.repository.clone())
         } else {
             Some(
                 config.project.tree.clone()?
-                    + UrlPath::try_from(&self.header(config)?).ok()?.to_string().as_str(),
+                    + UrlPath::try_from(&self.header(config)?)
+                        .ok()?
+                        .to_string()
+                        .as_str(),
             )
         }
     }
 
     fn include_path(&self, config: Arc<Config>) -> Option<UrlPath> {
         if self.is_in_system_header() {
-            return UrlPath::part(self.header(config.clone())?.file_name()?.to_string_lossy().as_ref()).into()
+            return UrlPath::part(
+                self.header(config.clone())?
+                    .file_name()?
+                    .to_string_lossy()
+                    .as_ref(),
+            )
+            .into();
         }
         UrlPath::try_from(&self.header(config.clone())?)
             .ok()?
@@ -142,7 +156,7 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
     fn ancestorage(&self) -> Vec<Entity<'e>> {
         let mut ancestors = Vec::new();
         if let Some(parent) = self.get_semantic_parent() {
-            // apparently in github actions TranslationUnit enum doesn't 
+            // apparently in github actions TranslationUnit enum doesn't
             // match, so use this as a fail-safe
             if !parent.get_name().is_some_and(|p| p.ends_with(".cpp")) {
                 match parent.get_kind() {
@@ -169,21 +183,23 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
         visibility: Access,
         include_statics: Include,
     ) -> Vec<Entity<'e>> {
-        self
-            .get_children()
+        self.get_children()
             .into_iter()
             .filter(|child| {
-                (child.get_kind() == EntityKind::Method || child.get_kind() == EntityKind::FunctionTemplate)
+                (child.get_kind() == EntityKind::Method
+                    || child.get_kind() == EntityKind::FunctionTemplate)
                     && match include_statics {
                         Include::Members => !child.is_static_method(),
                         Include::Statics => child.is_static_method(),
                         Include::All => true,
                     }
                     && match child.get_accessibility() {
-                        Some(Accessibility::Protected)
-                        => matches!(visibility, Access::All | Access::Protected),
-                        Some(Accessibility::Public)
-                        => matches!(visibility, Access::All | Access::Public),
+                        Some(Accessibility::Protected) => {
+                            matches!(visibility, Access::All | Access::Protected)
+                        }
+                        Some(Accessibility::Public) => {
+                            matches!(visibility, Access::All | Access::Public)
+                        }
                         _ => false,
                     }
             })
@@ -191,7 +207,10 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
     }
 
     fn get_function_arguments(&self) -> Option<Vec<Entity<'e>>> {
-        if !matches!(self.get_kind(), EntityKind::FunctionTemplate | EntityKind::FunctionDecl | EntityKind::Method) {
+        if !matches!(
+            self.get_kind(),
+            EntityKind::FunctionTemplate | EntityKind::FunctionDecl | EntityKind::Method
+        ) {
             return None;
         }
         let mut args = vec![];
@@ -209,19 +228,23 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
         let start = range.get_start().get_file_location();
         let end = range.get_end().get_file_location();
         let contents = start.file?.get_contents()?;
-        contents.get(start.offset as usize..end.offset as usize).map(|s| s.into())
+        contents
+            .get(start.offset as usize..end.offset as usize)
+            .map(|s| s.into())
     }
 
     fn extract_source_string_cleaned(&self) -> Option<String> {
         // TODO: this code is stupid and should be improved
-        Some(self.extract_source_string()?
-            .trim()
-            .replace('\t', " ")
-            .replace(['\r', '\n'], "")
-            .split(' ')
-            .filter(|x| !x.is_empty())
-            .intersperse(" ")
-            .collect())
+        Some(
+            self.extract_source_string()?
+                .trim()
+                .replace('\t', " ")
+                .replace(['\r', '\n'], "")
+                .split(' ')
+                .filter(|x| !x.is_empty())
+                .intersperse(" ")
+                .collect(),
+        )
     }
 
     fn get_allowed_external_lib(&self, config: Arc<Config>) -> Option<Arc<ExternalLib>> {
@@ -254,18 +277,19 @@ impl SubItem {
             return Vec::new();
         };
         match kind {
-            CppItemKind::Class | CppItemKind::Struct => {
-                entity.get_member_functions(Access::All, Include::All)
-                    .into_iter()
-                    .filter_map(|e| Some(SubItem {
+            CppItemKind::Class | CppItemKind::Struct => entity
+                .get_member_functions(Access::All, Include::All)
+                .into_iter()
+                .filter_map(|e| {
+                    Some(SubItem {
                         title: e.get_name()?,
                         heading: member_fun_link(&e)?,
                         icon: Some((String::from("code"), true)),
-                    }))
-                    .collect()
-            }
+                    })
+                })
+                .collect(),
 
-            CppItemKind::Namespace | CppItemKind::Function => Vec::new()
+            CppItemKind::Namespace | CppItemKind::Function => Vec::new(),
         }
     }
 }
@@ -283,7 +307,12 @@ impl NavItem {
         icon: Option<(&str, bool)>,
         suboptions: Vec<SubItem>,
     ) -> NavItem {
-        NavItem::Link(name.into(), url, icon.map(|s| (s.0.into(), s.1)), suboptions)
+        NavItem::Link(
+            name.into(),
+            url,
+            icon.map(|s| (s.0.into(), s.1)),
+            suboptions,
+        )
     }
 
     pub fn new_dir(name: &str, items: Vec<NavItem>, icon: Option<(&str, bool)>) -> NavItem {
@@ -310,22 +339,23 @@ impl NavItem {
                 for opt in suboptions.iter().map(|o| format!("{}::{}", name, o.title)) {
                     if let Some(r) = res.get_mut(&opt) {
                         *r += 1;
-                    }
-                    else {
+                    } else {
                         res.insert(opt, 0);
                     }
                 }
                 res
-            },
+            }
 
-            NavItem::Dir(name, items, _, _) => items.iter()
+            NavItem::Dir(name, items, _, _) => items
+                .iter()
                 .flat_map(|i| i.suboptions_titles(config.clone()))
                 .map(|(t, count)| (format!("{}::{}", name, t), count))
                 .collect(),
-            
-            NavItem::Root(_, items) => items.iter()
+
+            NavItem::Root(_, items) => items
+                .iter()
                 .flat_map(|i| i.suboptions_titles(config.clone()))
-                .collect()
+                .collect(),
         }
     }
 

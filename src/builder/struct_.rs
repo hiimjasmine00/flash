@@ -1,12 +1,11 @@
-
-use std::sync::Arc;
-use crate::{html::Html, url::UrlPath};
-use clang::Entity;
 use super::{
-    traits::{ASTEntry, BuildResult, EntityMethods, Entry, NavItem, OutputEntry, SubItem},
     builder::Builder,
     shared::output_classlike,
+    traits::{ASTEntry, BuildResult, EntityMethods, Entry, NavItem, OutputEntry, SubItem},
 };
+use crate::{html::Html, url::UrlPath};
+use clang::Entity;
+use std::sync::Arc;
 
 pub struct Struct<'e> {
     entity: Entity<'e>,
@@ -26,7 +25,9 @@ impl<'e> Entry<'e> for Struct<'e> {
     }
 
     fn url(&self) -> UrlPath {
-        self.entity.rel_docs_url().expect("Unable to get struct URL")
+        self.entity
+            .rel_docs_url()
+            .expect("Unable to get struct URL")
     }
 
     fn build(&self, builder: &Builder<'e>) -> BuildResult {
@@ -35,8 +36,10 @@ impl<'e> Entry<'e> for Struct<'e> {
 
     fn nav(&self) -> NavItem {
         NavItem::new_link(
-            &self.name(), self.url(), Some(("box", true)),
-            SubItem::for_classlike(&self.entity)
+            &self.name(),
+            self.url(),
+            Some(("box", true)),
+            SubItem::for_classlike(&self.entity),
         )
     }
 }

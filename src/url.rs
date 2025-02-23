@@ -53,7 +53,7 @@ impl UrlPath {
 
     pub fn part(part: &str) -> Self {
         Self {
-            parts: vec![part.to_string()]
+            parts: vec![part.to_string()],
         }
     }
 
@@ -68,13 +68,10 @@ impl UrlPath {
         let mut filtered = Vec::new();
         self.parts
             .iter()
-            .filter_map(|p|
-                (
-                    !p.is_empty()
-                    && p != "."
-                    && !p.chars().all(char::is_whitespace)
-                ).then_some(p.to_owned())
-            )
+            .filter_map(|p| {
+                (!p.is_empty() && p != "." && !p.chars().all(char::is_whitespace))
+                    .then_some(p.to_owned())
+            })
             .for_each(|p| {
                 if p == ".." {
                     filtered.pop();
@@ -144,8 +141,7 @@ impl UrlPath {
     pub fn to_absolute(&self, config: Arc<Config>) -> Self {
         if self.is_absolute(config.clone()) {
             self.clone()
-        }
-        else {
+        } else {
             config
                 .output_url
                 .as_ref()
@@ -250,8 +246,7 @@ impl Display for UrlPath {
         // empty urls are just ""
         if !self.is_empty() {
             f.write_fmt(format_args!("/{}", &self.url_safe_parts().join("/")))
-        }
-        else {
+        } else {
             Ok(())
         }
     }

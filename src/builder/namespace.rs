@@ -176,7 +176,9 @@ impl<'e> Namespace<'e> {
             }
 
             // skip stuff from external headers
-            if child.is_in_system_header() && child.get_allowed_external_lib(config.clone()).is_none() {
+            if child.is_in_system_header()
+                && child.get_allowed_external_lib(config.clone()).is_none()
+            {
                 continue;
             }
 

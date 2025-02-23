@@ -94,7 +94,9 @@ pub fn cmake_compile_commands(config: Arc<Config>) -> Result<CompileCommands, St
 }
 
 pub fn cmake_compile_args_for(config: Arc<Config>) -> Result<Vec<String>, String> {
-    let from = &config.cmake.as_ref()
+    let from = &config
+        .cmake
+        .as_ref()
         .ok_or(String::from("Project does not use CMake"))?
         .infer_args_from;
     for cmd in cmake_compile_commands(config.clone())? {
@@ -102,5 +104,8 @@ pub fn cmake_compile_args_for(config: Arc<Config>) -> Result<Vec<String>, String
             return Ok(cmd.get_command_list(config));
         }
     }
-    Err(format!("Unable to find compile args for '{}'", config.input_dir.join(from).to_string_lossy()))
+    Err(format!(
+        "Unable to find compile args for '{}'",
+        config.input_dir.join(from).to_string_lossy()
+    ))
 }

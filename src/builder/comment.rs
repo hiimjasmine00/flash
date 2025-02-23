@@ -12,10 +12,7 @@ use crate::{
 };
 
 use super::{
-    builder::Builder,
-    traits::EntityMethods,
-    shared::fmt_autolinks,
-    markdown::fmt_markdown,
+    builder::Builder, markdown::fmt_markdown, shared::fmt_autolinks, traits::EntityMethods,
 };
 
 struct CommentLexer<'s> {
@@ -65,8 +62,7 @@ impl<'s> CommentLexer<'s> {
             else {
                 self.skip_while(|c| c.is_whitespace() && c != '\n')
             }
-        }
-        else if self.raw.peek() == Some(&'/') {
+        } else if self.raw.peek() == Some(&'/') {
             self.skip_while(|c| c == '/');
             // If indentation was provided, remove that amount of whitespace if possible
             if let Some(max) = indentation {
@@ -168,7 +164,9 @@ impl<'s> CommentLexer<'s> {
                         }
 
                         // Next value or end of list
-                        let Some(next) = self.raw.next() else { break; };
+                        let Some(next) = self.raw.next() else {
+                            break;
+                        };
                         match next {
                             ']' => break,
                             ',' => continue,
@@ -293,7 +291,10 @@ fn annotate(base: Entity, annotations: &[Annotation]) -> Vec<Html> {
                 };
 
             list.push(
-                HtmlText::new("\n".repeat(newlines as usize) + " ".repeat(spaces as usize).as_str()).into(),
+                HtmlText::new(
+                    "\n".repeat(newlines as usize) + " ".repeat(spaces as usize).as_str(),
+                )
+                .into(),
             );
         }
 
@@ -481,17 +482,20 @@ impl<'e> Example<'e> {
 
     pub fn to_html(&self) -> Html {
         // Custom syntax highlighting with links
-        if self.analyze && let Ok(sweet) = self.try_to_analyzed_html().inspect_err(|e|
-            println!("Unable to parse example: {e}")
-        ) {
+        if self.analyze
+            && let Ok(sweet) = self
+                .try_to_analyzed_html()
+                .inspect_err(|e| println!("Unable to parse example: {e}"))
+        {
             sweet
         }
         // Otherwise create a regular code block
         else {
             HtmlElement::new("pre")
-                .with_child(HtmlElement::new("code")
-                    .with_classes(&["example", "language-cpp"])
-                    .with_text(&self.data)
+                .with_child(
+                    HtmlElement::new("code")
+                        .with_classes(&["example", "language-cpp"])
+                        .with_text(&self.data),
                 )
                 .into()
         }
@@ -549,13 +553,13 @@ impl<'e> JSDocComment<'e> {
                 "return" | "returns" => self.returns = lexer.value_for(&cmd).into(),
                 "throws" => self.throws = lexer.value_for(&cmd).into(),
                 "see" => self.see.push(lexer.value_for(&cmd)),
-                "note" =>
+                "note" => {
                     if cmd.attrs.contains_key("short") {
                         self.short_notes.push(lexer.value_for(&cmd))
-                    }
-                    else {
+                    } else {
                         self.notes.push(lexer.value_for(&cmd))
-                    },
+                    }
+                }
                 "warning" | "warn" => self.warnings.push(lexer.value_for(&cmd)),
                 "version" => self.version = lexer.value_for(&cmd).into(),
                 "since" => self.since = lexer.value_for(&cmd).into(),
@@ -610,20 +614,22 @@ impl<'e> JSDocComment<'e> {
                                 .map(|v| Html::p(format!("Version {v}"))),
                         )
                         .with_child_opt(self.since.as_ref().map(|v| Html::p(format!("Since {v}"))))
-                        .with_children(
-                            self.short_notes.iter().map(Html::p).collect()
-                        )
+                        .with_children(self.short_notes.iter().map(Html::p).collect())
                         .into()
-                } else { None }
+                } else {
+                    None
+                },
             )
             .with_child(
                 self.description
                     .as_ref()
-                    .map(|d| fmt_markdown(
-                        self.builder,
-                        &fmt_autolinks(self.builder, d, None),
-                        None::<fn(_) -> _>
-                    ))
+                    .map(|d| {
+                        fmt_markdown(
+                            self.builder,
+                            &fmt_autolinks(self.builder, d, None),
+                            None::<fn(_) -> _>,
+                        )
+                    })
                     .unwrap_or(Html::span(&["no-desc"], "No description provided")),
             )
             .with_child_opt(

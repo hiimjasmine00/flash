@@ -1,7 +1,7 @@
 use super::builder::Builder;
-use super::traits::{ASTEntry, Access, EntityMethods, Entry, Include};
 use super::comment::JSDocComment;
 use super::namespace::CppItem;
+use super::traits::{ASTEntry, Access, EntityMethods, Entry, Include};
 use crate::annotation::Annotations;
 use crate::config::Config;
 use crate::html::{Html, HtmlElement, HtmlList, HtmlText};
@@ -171,26 +171,32 @@ fn fmt_template_args(entity: &Entity, _builder: &Builder) -> Option<Html> {
     if template_children.is_empty() {
         return None;
     }
-    Some(HtmlElement::new("span")
-        .with_class("template-params")
-        .with_child(Html::span(&["keyword", "space-after"], "template"))
-        .with_children(
-            template_children
-                .into_iter()
-                .map(|e|
-                    HtmlText::new(e.extract_source_string_cleaned().or_else(|| e.get_name().map(|x| format!("typename {x}"))).unwrap_or("_".into())).into()
-                )
-                .collect::<Vec<_>>()
-                .insert_between(|| {
-                    HtmlElement::new("span")
-                        .with_class("comma")
-                        .with_class("space-after")
-                        .with_child(HtmlText::new(","))
+    Some(
+        HtmlElement::new("span")
+            .with_class("template-params")
+            .with_child(Html::span(&["keyword", "space-after"], "template"))
+            .with_children(
+                template_children
+                    .into_iter()
+                    .map(|e| {
+                        HtmlText::new(
+                            e.extract_source_string_cleaned()
+                                .or_else(|| e.get_name().map(|x| format!("typename {x}")))
+                                .unwrap_or("_".into()),
+                        )
                         .into()
-                })
-                .surround(HtmlText::new("<").into(), HtmlText::new(">").into()),
-        )
-        .into()
+                    })
+                    .collect::<Vec<_>>()
+                    .insert_between(|| {
+                        HtmlElement::new("span")
+                            .with_class("comma")
+                            .with_class("space-after")
+                            .with_child(HtmlText::new(","))
+                            .into()
+                    })
+                    .surround(HtmlText::new("<").into(), HtmlText::new(">").into()),
+            )
+            .into(),
     )
 }
 
@@ -218,47 +224,48 @@ fn fmt_fun_signature(fun: &Entity, builder: &Builder) -> Html {
     HtmlElement::new("summary")
         .with_classes(&["entity", "fun"])
         .with_child_opt(fmt_template_args(fun, builder))
-        .with_child(HtmlElement::new("span")
-            .with_class("function-signature")
-            .with_child_opt(
-                fun.is_static_method()
-                    .then_some(Html::span(&["keyword", "space-after"], "static")),
-            )
-            .with_child_opt(
-                fun.is_virtual_method()
-                    .then_some(Html::span(&["keyword", "space-after"], "virtual")),
-            )
-            .with_child_opt(fun.get_result_type().map(|t| fmt_type(&t, builder)))
-            .with_child(Html::span(
-                &["name", "space-before"],
-                &fun.get_name().unwrap_or("_anon".into()),
-            ))
-            .with_child(
-                HtmlElement::new("span").with_class("params").with_children(
-                    fun.get_function_arguments()
-                        .map(|args| {
-                            args.iter()
-                                .map(|arg| fmt_param(arg, builder))
-                                .collect::<Vec<_>>()
-                        })
-                        .unwrap_or(Vec::new())
-                        .insert_between(|| Html::span(&["comma", "space-after"], ","))
-                        .surround(HtmlText::new("(").into(), HtmlText::new(")").into()),
-                ),
-            )
-            .with_child_opt(
-                fun.is_const_method()
-                    .then_some(Html::span(&["keyword", "space-before"], "const")),
-            )
-            .with_child_opt(
-                fun.is_pure_virtual_method().then_some::<Html>(
-                    HtmlList::new(vec![
-                        Html::span(&["space-before"], "="),
-                        Html::span(&["space-before", "literal"], "0"),
-                    ])
-                    .into(),
+        .with_child(
+            HtmlElement::new("span")
+                .with_class("function-signature")
+                .with_child_opt(
+                    fun.is_static_method()
+                        .then_some(Html::span(&["keyword", "space-after"], "static")),
                 )
-            )
+                .with_child_opt(
+                    fun.is_virtual_method()
+                        .then_some(Html::span(&["keyword", "space-after"], "virtual")),
+                )
+                .with_child_opt(fun.get_result_type().map(|t| fmt_type(&t, builder)))
+                .with_child(Html::span(
+                    &["name", "space-before"],
+                    &fun.get_name().unwrap_or("_anon".into()),
+                ))
+                .with_child(
+                    HtmlElement::new("span").with_class("params").with_children(
+                        fun.get_function_arguments()
+                            .map(|args| {
+                                args.iter()
+                                    .map(|arg| fmt_param(arg, builder))
+                                    .collect::<Vec<_>>()
+                            })
+                            .unwrap_or(Vec::new())
+                            .insert_between(|| Html::span(&["comma", "space-after"], ","))
+                            .surround(HtmlText::new("(").into(), HtmlText::new(")").into()),
+                    ),
+                )
+                .with_child_opt(
+                    fun.is_const_method()
+                        .then_some(Html::span(&["keyword", "space-before"], "const")),
+                )
+                .with_child_opt(
+                    fun.is_pure_virtual_method().then_some::<Html>(
+                        HtmlList::new(vec![
+                            Html::span(&["space-before"], "="),
+                            Html::span(&["space-before", "literal"], "0"),
+                        ])
+                        .into(),
+                    ),
+                ),
         )
         .into()
 }
@@ -267,9 +274,7 @@ pub fn fmt_class_method(fun: &Entity, builder: &Builder) -> Html {
     HtmlElement::new("details")
         .with_class("entity-desc")
         .with_attr_opt("id", member_fun_link(fun))
-        .with_child(
-            fmt_fun_signature(fun, builder)
-        )
+        .with_child(fmt_fun_signature(fun, builder))
         .with_child(
             HtmlElement::new("div").with_child(
                 fun.get_comment()
@@ -296,7 +301,8 @@ pub fn fmt_classlike_decl(class: &Entity, keyword: &str, builder: &Builder) -> H
         )
         .with_child(
             HtmlElement::new("div").with_child(
-                class.get_comment()
+                class
+                    .get_comment()
                     .map(|s| JSDocComment::parse(s, builder).to_html(true))
                     .unwrap_or(Html::span(&["no-desc"], "No description provided")),
             ),
@@ -333,22 +339,24 @@ pub fn fmt_header_link(entity: &Entity, config: Arc<Config>) -> Html {
             .with_attr_opt("href", (!disabled).then_some(link))
             .with_class("header-link")
             .with_class_opt(disabled.then_some("disabled"))
-            .with_child(HtmlElement::new("code")
-                .with_class("header-link")
-                .with_children(vec![
-                    Html::span(&["keyword"], "#include "),
-                    Html::span(&["url"], &format!("&lt;{}&gt;", path.to_raw_string()))
-                ])
+            .with_child(
+                HtmlElement::new("code")
+                    .with_class("header-link")
+                    .with_children(vec![
+                        Html::span(&["keyword"], "#include "),
+                        Html::span(&["url"], &format!("&lt;{}&gt;", path.to_raw_string())),
+                    ]),
             )
             .into()
-    }
-    else {
+    } else {
         Html::p("&lt;Not available online&gt;")
     }
 }
 
 pub fn fmt_base_classes<'e, T: ASTEntry<'e>>(entry: &T, kw: &str, builder: &Builder) -> Html {
-    let bases = entry.entity().get_children()
+    let bases = entry
+        .entity()
+        .get_children()
         .into_iter()
         .filter(|p| p.get_kind() == EntityKind::BaseSpecifier)
         .collect::<Vec<_>>();
@@ -356,34 +364,50 @@ pub fn fmt_base_classes<'e, T: ASTEntry<'e>>(entry: &T, kw: &str, builder: &Buil
     HtmlElement::new("div")
         .with_classes(&["entity", "class"])
         .with_child_opt(fmt_template_args(entry.entity(), builder))
-        .with_child(HtmlElement::new("span")
-            .with_class("class-decl")
-            .with_child(Html::span(&["keyword", "space-after"], kw))
-            .with_child(Html::span(&["name"], entry.entity().get_name().unwrap_or("_".into()).as_str()))
-            .with_child_opt((!bases.is_empty()).then_some(
-                Html::span(&["space-before", "space-after"], ":")
-            ))
-            .with_children(bases.into_iter()
-                .map(|base| HtmlList::new([
-                    base.get_accessibility().map(|a|
-                        Html::span(
-                            &["keyword", "space-after"],
-                            match a {
-                                Accessibility::Public => "public",
-                                Accessibility::Private => "private",
-                                Accessibility::Protected => "protected",
-                            }
-                        )
-                    ),
-                    base.is_virtual_base().then_some(
-                        Html::span(&["keyword", "space-after"], "virtual")
-                    ),
-                    base.get_type().map(|ty| fmt_type(&ty, builder))
-                ].into_iter().flatten().collect()).into())
-                .intersperse_with(|| Html::span(&["space-after"], ","))
-                .collect()
-            )
-            .with_child(Html::span(&["space-before"], "{ ... }"))
+        .with_child(
+            HtmlElement::new("span")
+                .with_class("class-decl")
+                .with_child(Html::span(&["keyword", "space-after"], kw))
+                .with_child(Html::span(
+                    &["name"],
+                    entry.entity().get_name().unwrap_or("_".into()).as_str(),
+                ))
+                .with_child_opt(
+                    (!bases.is_empty())
+                        .then_some(Html::span(&["space-before", "space-after"], ":")),
+                )
+                .with_children(
+                    bases
+                        .into_iter()
+                        .map(|base| {
+                            HtmlList::new(
+                                [
+                                    base.get_accessibility().map(|a| {
+                                        Html::span(
+                                            &["keyword", "space-after"],
+                                            match a {
+                                                Accessibility::Public => "public",
+                                                Accessibility::Private => "private",
+                                                Accessibility::Protected => "protected",
+                                            },
+                                        )
+                                    }),
+                                    base.is_virtual_base().then_some(Html::span(
+                                        &["keyword", "space-after"],
+                                        "virtual",
+                                    )),
+                                    base.get_type().map(|ty| fmt_type(&ty, builder)),
+                                ]
+                                .into_iter()
+                                .flatten()
+                                .collect(),
+                            )
+                            .into()
+                        })
+                        .intersperse_with(|| Html::span(&["space-after"], ","))
+                        .collect(),
+                )
+                .with_child(Html::span(&["space-before"], "{ ... }")),
         )
         .into()
 }
@@ -434,13 +458,15 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
     ent.extend(vec![
         (
             "base_classes",
-            fmt_base_classes(entry, entry.category(), builder)
+            fmt_base_classes(entry, entry.category(), builder),
         ),
         (
             "public_static_functions",
             fmt_section(
                 "Public static methods",
-                entry.entity().get_member_functions(Access::Public, Include::Statics)
+                entry
+                    .entity()
+                    .get_member_functions(Access::Public, Include::Statics)
                     .into_iter()
                     .map(|e| fmt_class_method(&e, builder))
                     .collect::<Vec<_>>(),
@@ -450,7 +476,9 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
             "public_member_functions",
             fmt_section(
                 "Public member functions",
-                entry.entity().get_member_functions(Access::Public, Include::Members)
+                entry
+                    .entity()
+                    .get_member_functions(Access::Public, Include::Members)
                     .into_iter()
                     .map(|e| fmt_class_method(&e, builder))
                     .collect::<Vec<_>>(),
@@ -461,7 +489,9 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
             "protected_member_functions",
             fmt_section(
                 "Protected member functions",
-                entry.entity().get_member_functions(Access::Protected, Include::Members)
+                entry
+                    .entity()
+                    .get_member_functions(Access::Protected, Include::Members)
                     .into_iter()
                     .map(|e| fmt_class_method(&e, builder))
                     .collect::<Vec<_>>(),
@@ -508,12 +538,10 @@ pub fn output_function<'e, T: ASTEntry<'e>>(
     builder: &Builder,
 ) -> Vec<(&'static str, Html)> {
     let mut ent = output_entity(entry, builder);
-    ent.extend(vec![
-        (
-            "function_signature",
-            fmt_fun_signature(entry.entity(), builder)
-        )
-    ]);
+    ent.extend(vec![(
+        "function_signature",
+        fmt_fun_signature(entry.entity(), builder),
+    )]);
     ent
 }
 
@@ -525,7 +553,7 @@ fn fmt_autolinks_recursive(
 ) {
     annotations.rewind();
     while let Some(word) = annotations.next() {
-        // skip stuff that have all-lowercase names (so words like "get" 
+        // skip stuff that have all-lowercase names (so words like "get"
         // and "data" don't get autolinked)
         if !word.chars().all(|c| c.is_lowercase()) && *word == entity.name() {
             if let Some(url) = entity.entity().abs_docs_url(config.clone()) {
@@ -544,9 +572,7 @@ fn fmt_autolinks_recursive(
 pub fn fmt_autolinks(builder: &Builder, text: &str, prefix: Option<char>) -> String {
     let mut annotations = Annotations::new(text);
     for entry in builder.root.entries.values() {
-        fmt_autolinks_recursive(
-            entry, builder.config.clone(), &mut annotations, &prefix
-        );
+        fmt_autolinks_recursive(entry, builder.config.clone(), &mut annotations, &prefix);
     }
     annotations.into_result()
 }
@@ -568,7 +594,7 @@ pub fn fmt_emoji(text: &CowStr) -> String {
         if let Some(emoji) = emojis::get_by_shortcode(&buffer) {
             #[allow(clippy::match_single_binding)]
             match iter.advance_by(i + 1) {
-                _ => {},
+                _ => {}
             }
             Some(emoji.as_str())
         } else {
@@ -581,10 +607,11 @@ pub fn fmt_emoji(text: &CowStr) -> String {
 
     let mut iter = text.chars().multipeek();
     while let Some(c) = iter.next() {
-        if c == ':' && let Some(emoji) = eat_emoji(&mut iter) {
+        if c == ':'
+            && let Some(emoji) = eat_emoji(&mut iter)
+        {
             res.push_str(emoji);
-        }
-        else {
+        } else {
             res.push(c);
         }
     }

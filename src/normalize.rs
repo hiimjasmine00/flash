@@ -1,5 +1,4 @@
-
-use std::path::{PathBuf, Component};
+use std::path::{Component, PathBuf};
 
 pub trait Normalize {
     fn normalize(&self) -> Self;
@@ -11,8 +10,7 @@ impl Normalize for PathBuf {
         for comp in self.components() {
             if comp == Component::ParentDir {
                 res.pop();
-            }
-            else {
+            } else {
                 res.push(comp);
             }
         }

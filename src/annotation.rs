@@ -1,4 +1,3 @@
-
 use std::ops::Range;
 
 struct Annotation {
@@ -30,11 +29,11 @@ impl<'a> Annotations<'a> {
             if let Some(value) = word.value {
                 result.replace_range(
                     (word.range.start as isize + offset) as usize
-                    ..(word.range.end as isize + offset) as usize,
-                    &value
+                        ..(word.range.end as isize + offset) as usize,
+                    &value,
                 );
-                // Applying this annotation may cause the next annotations to 
-                // shifted if the replaced string is shorter / longer than the 
+                // Applying this annotation may cause the next annotations to
+                // shifted if the replaced string is shorter / longer than the
                 // original
                 offset += value.len() as isize - word.raw.len() as isize;
             }
@@ -47,14 +46,14 @@ impl<'a> Annotations<'a> {
     }
 
     pub fn next(&mut self) -> Option<String> {
-        self.annotations.iter()
+        self.annotations
+            .iter()
             .skip(self.next_in_iter)
             .find(|a| {
                 if a.value.is_some() {
                     self.next_in_iter += 1;
                     true
-                }
-                else {
+                } else {
                     false
                 }
             })
@@ -63,18 +62,24 @@ impl<'a> Annotations<'a> {
     }
 
     pub fn annotate(&mut self, value: String) {
-        self.annotations.get_mut(self.next_in_iter - 1).unwrap().value = Some(value);
+        self.annotations
+            .get_mut(self.next_in_iter - 1)
+            .unwrap()
+            .value = Some(value);
     }
 
     fn skip_to_next_word(raw: &'a str, iter_ix: &mut usize) {
-        while let Some(i) = raw.chars().nth(*iter_ix) && !i.is_alphanumeric() {
+        while let Some(i) = raw.chars().nth(*iter_ix)
+            && !i.is_alphanumeric()
+        {
             *iter_ix += 1;
         }
     }
 
     fn next_word(raw: &'a str, iter_ix: &mut usize) -> Option<(Range<usize>, String)> {
         let start = *iter_ix;
-        let res: String = raw.chars()
+        let res: String = raw
+            .chars()
             .skip(*iter_ix)
             .take_while(|c| c.is_alphanumeric())
             .collect();
@@ -90,7 +95,7 @@ impl<'a> Annotations<'a> {
         Some(Annotation {
             raw: word.clone(),
             range,
-            value: None
+            value: None,
         })
     }
 

@@ -1,4 +1,3 @@
-
 // thanks https://stackoverflow.com/questions/74841526/why-does-stditerpeekablepeek-mutably-borrow-the-self-argument
 
 #![allow(unused)]

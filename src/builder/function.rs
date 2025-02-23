@@ -6,7 +6,7 @@ use clang::Entity;
 use super::{
     builder::Builder,
     shared::output_function,
-    traits::{ASTEntry, BuildResult, EntityMethods, Entry, NavItem, OutputEntry}
+    traits::{ASTEntry, BuildResult, EntityMethods, Entry, NavItem, OutputEntry},
 };
 
 pub struct Function<'e> {
@@ -27,7 +27,9 @@ impl<'e> Entry<'e> for Function<'e> {
     }
 
     fn url(&self) -> UrlPath {
-        self.entity.rel_docs_url().expect("Unable to get function URL")
+        self.entity
+            .rel_docs_url()
+            .expect("Unable to get function URL")
     }
 
     fn build(&self, builder: &Builder<'e>) -> BuildResult {

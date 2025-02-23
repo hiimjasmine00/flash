@@ -136,18 +136,34 @@ function clearSearch() {
     search('');
 }
 
-function search(query) {
+function debounce(func, delay) {
+	let timeout;
+	return function() {
+		const context = this;
+        const args = arguments;
+		const later = function() {
+			timeout = null;
+			func.apply(context, args);
+		};
+		clearTimeout(timeout);
+		timeout = setTimeout(later, delay);
+	};
+};
+
+function searchActually(query) {
     searchQuery = query;
     if (!memberFunctionsList && selectedNavTab() == 'entities') {
         fetch(`${FLASH_OUTPUT_URL}/functions.json`)
-            .then(res => res.json())
-            .then(res => {
-                memberFunctionsList = res;
-                search(searchQuery);
-            });
+        .then(res => res.json())
+        .then(res => {
+            memberFunctionsList = res;
+            searchActually(searchQuery);
+        });
     }
     updateNav();
 }
+
+const search = debounce(searchActually, 50);
 
 function getFullName(node) {
     let parent = node;
@@ -233,11 +249,14 @@ function furryMatchMany(list, query, separator) {
     let score = 0;
     let someMatched = false;
     let i = 0;
+    // hack: "::" -> ":"
+    const queryParts = query.split(separator[0]).filter(x => x !== "");
+    let queryIndex = 0;
     for (const item of list) {
         if (matched.length) {
             matched += `<span class="scope">${separator}</span>`;
         }
-        const match = furryMatch(item, query);
+        const match = furryMatch(item, queryParts[Math.min(queryIndex, queryParts.length - 1)]);
         if (match) {
             matched += match.matched;
             score += match.score;
@@ -246,11 +265,19 @@ function furryMatchMany(list, query, separator) {
             if (i !== list.length - 1) {
                 score -= 5;
             }
+            queryIndex++;
+            if (queryIndex >= queryParts.length) {
+                score -= 5;
+            }
         }
         else {
             matched += item;
         }
         i++;
+    }
+    // theres still stuff that wasnt matched
+    if (queryIndex < queryParts.length) {
+        someMatched = false;
     }
     return someMatched ? { score, matched } : undefined;
 }
@@ -302,21 +329,19 @@ function updateNav() {
         });
         if (selectedNavTab() == 'entities') {
             memberFunctionsList?.forEach(fun => {
-                let f = fun.split('::');
-                const name = f.pop();
-                const match = furryMatchMany([name], searchQuery, '::');
+                let funParts = fun.split('::');
+                const name = funParts.at(-1);
+                const match = furryMatchMany(funParts, searchQuery, '::');
                 if (match) {
+                    funParts.pop();
                     const node = document.createElement('a');
-                    const url = `${FLASH_OUTPUT_URL}/classes/${f.join('/')}#${name.replace(/\s+\([0-9]+\)/, '')}`;
+                    const url = `${FLASH_OUTPUT_URL}/classes/${funParts.join('/')}#${name.replace(/\s+\([0-9]+\)/, '')}`;
                     node.setAttribute('href', url);
                     node.addEventListener('click', e => {
                         navigate(url);
                         e.preventDefault();
                     });
-                    f = f.map(a => `<span class="namespace">${a}</span>`);
-                    f.push(match.matched);
-                    node.innerHTML = feather.icons.code.toSvg({ 'class': 'icon class' }) +
-                        f.join('<span class="scope">::</span>');
+                    node.innerHTML = feather.icons.code.toSvg({ 'class': 'icon class' }) + match.matched;
                     results.push([match.score, node]);
                 }
             });

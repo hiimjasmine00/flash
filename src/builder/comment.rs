@@ -47,9 +47,27 @@ impl<'s> CommentLexer<'s> {
         self.skip_while(|c| c.is_whitespace());
 
         // Make sure this line was started with a star
-        if self.raw.peek().is_some_and(|c| *c == '*') {
+        if self.raw.peek() == Some(&'*') {
             // Consume the star
             self.raw.next();
+            // If indentation was provided, remove that amount of whitespace if possible
+            if let Some(max) = indentation {
+                let mut i = 0;
+                self.skip_while(|c| {
+                    c.is_whitespace() && c != '\n' && {
+                        i += 1;
+                        i
+                    } <= max
+                });
+                i
+            }
+            // Otherwise consume as much whitespace as possible and return the count
+            else {
+                self.skip_while(|c| c.is_whitespace() && c != '\n')
+            }
+        }
+        else if self.raw.peek() == Some(&'/') {
+            self.skip_while(|c| c == '/');
             // If indentation was provided, remove that amount of whitespace if possible
             if let Some(max) = indentation {
                 let mut i = 0;
@@ -74,7 +92,7 @@ impl<'s> CommentLexer<'s> {
 
     fn skip_to_next_value(&mut self) {
         // Eat whitespace and stars until something that isn't those is found
-        self.skip_while(|c| c.is_whitespace() || c == '*');
+        self.skip_while(|c| c.is_whitespace() || c == '*' || c == '/');
     }
 
     fn eat_until<P: FnMut(char) -> bool>(&mut self, mut pred: P) -> Option<String> {

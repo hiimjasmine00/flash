@@ -108,8 +108,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 struct FlashLogger;
 
 impl log::Log for FlashLogger {
-    fn enabled(&self, metadata: &log::Metadata) -> bool {
-        metadata.level() <= log::Level::Info
+    fn enabled(&self, _: &log::Metadata) -> bool {
+        true
     }
 
     fn log(&self, record: &log::Record) {
@@ -119,7 +119,7 @@ impl log::Log for FlashLogger {
             Level::Warn => "[warn]".yellow().bold().to_string(),
             Level::Error => "[error]".red().bold().to_string(),
             Level::Info => "[info]".bright_blue().bold().to_string(),
-            _ => format!("{}", record.level()),
+            Level::Debug | Level::Trace => "[debug]".bright_purple().bold().to_string(),
         };
         println!("{} {}", header, record.args());
     }
@@ -131,6 +131,10 @@ static LOGGER: FlashLogger = FlashLogger;
 impl FlashLogger {
     pub fn init() {
         log::set_logger(&LOGGER).expect("Failed to initialize logger");
-        log::set_max_level(log::LevelFilter::Info);
+        log::set_max_level(if cfg!(debug_assertions) {
+            log::LevelFilter::Trace
+        } else {
+            log::LevelFilter::Info
+        });
     }
 }

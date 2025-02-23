@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use clang::{Entity, EntityKind};
-use log::debug;
+use log::{debug, warn};
 
 use crate::{config::Config, url::UrlPath};
 
@@ -166,6 +166,7 @@ impl<'e> Namespace<'e> {
             entries: HashMap::new(),
         };
         ret.load_entries(config);
+        ret.clean_empty_namespaces();
         ret
     }
 
@@ -181,6 +182,28 @@ impl<'e> Namespace<'e> {
                 ns.merge_with_namespace(entry_ns);
             } else {
                 self.entries.insert(name, other_entry);
+            }
+        }
+    }
+
+    fn clean_empty_namespaces(&mut self) {
+        let keys = self.entries.keys().cloned().collect::<Vec<_>>();
+        for key in keys {
+            let mut remove = false;
+            if let Some(CppItem::Namespace(ns)) = self.entries.get_mut(&key) {
+                ns.clean_empty_namespaces();
+                if ns.entries.is_empty() {
+                    remove = true;
+                }
+            }
+            if remove {
+                if let Some(entry) = self.entries.get(&key) {
+                    warn!(
+                        "Removing empty namespace {}",
+                        entry.entity().full_name().join("::")
+                    );
+                }
+                self.entries.remove(&key);
             }
         }
     }

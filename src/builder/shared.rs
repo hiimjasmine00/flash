@@ -549,7 +549,6 @@ fn fmt_autolinks_recursive(
     entity: &CppItem,
     config: Arc<Config>,
     annotations: &mut Annotations<'_>,
-    prefix: &Option<char>,
 ) {
     annotations.rewind();
     while let Some(word) = annotations.next() {
@@ -564,15 +563,15 @@ fn fmt_autolinks_recursive(
 
     if let CppItem::Namespace(ns) = entity {
         for v in ns.entries.values() {
-            fmt_autolinks_recursive(v, config.clone(), annotations, prefix);
+            fmt_autolinks_recursive(v, config.clone(), annotations);
         }
     }
 }
 
-pub fn fmt_autolinks(builder: &Builder, text: &str, prefix: Option<char>) -> String {
+pub fn fmt_autolinks(builder: &Builder, text: &str) -> String {
     let mut annotations = Annotations::new(text);
     for entry in builder.root.entries.values() {
-        fmt_autolinks_recursive(entry, builder.config.clone(), &mut annotations, &prefix);
+        fmt_autolinks_recursive(entry, builder.config.clone(), &mut annotations);
     }
     annotations.into_result()
 }

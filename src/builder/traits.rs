@@ -11,7 +11,7 @@ use crate::{
     url::UrlPath,
 };
 
-use super::{builder::Builder, namespace::CppItemKind, shared::member_fun_link};
+use super::{builder::Builder, namespace::CppItemKind};
 
 pub trait EntityMethods<'e> {
     /// Get the config source for this entity
@@ -267,8 +267,6 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
 #[derive(Clone)]
 pub struct SubItem {
     pub title: String,
-    pub heading: String,
-    pub icon: Option<(String, bool)>,
 }
 
 impl SubItem {
@@ -283,8 +281,6 @@ impl SubItem {
                 .filter_map(|e| {
                     Some(SubItem {
                         title: e.get_name()?,
-                        heading: member_fun_link(&e)?,
-                        icon: Some((String::from("code"), true)),
                     })
                 })
                 .collect(),

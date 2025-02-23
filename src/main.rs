@@ -5,13 +5,7 @@
 use crate::{analyze::create_docs, normalize::Normalize, url::UrlPath};
 use clap::Parser;
 use config::Config;
-use std::{
-    error::Error,
-    fs, io,
-    path::{Path, PathBuf},
-    process::exit,
-    time::Instant,
-};
+use std::{error::Error, fs, path::PathBuf, process::exit, time::Instant};
 
 mod analyze;
 mod annotation;
@@ -41,21 +35,6 @@ struct Args {
     /// Whether to skip invoking CMake entirely, relies on existing build dir.
     #[arg(long, default_value_t = false, hide = true)]
     skip_build: bool,
-}
-
-fn remove_dir_contents<P: AsRef<Path>>(path: P) -> io::Result<()> {
-    for entry in fs::read_dir(path)? {
-        let entry = entry?;
-        let path = entry.path();
-
-        if entry.file_type()?.is_dir() {
-            remove_dir_contents(&path)?;
-            fs::remove_dir(path)?;
-        } else {
-            fs::remove_file(path)?;
-        }
-    }
-    Ok(())
 }
 
 #[tokio::main]

@@ -626,7 +626,7 @@ impl<'e> JSDocComment<'e> {
                     .map(|d| {
                         fmt_markdown(
                             self.builder,
-                            &fmt_autolinks(self.builder, d, None),
+                            &fmt_autolinks(self.builder, d),
                             None::<fn(_) -> _>,
                         )
                     })

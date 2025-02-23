@@ -38,6 +38,8 @@ impl CompileCommand {
             .chain(vec![format!("-working-directory={}", self.directory.to_str().unwrap())])
             // Add extra compile args
             .chain(config.analysis.compile_args.clone())
+            // Retain comments from external libraries that might be included in the docs
+            .chain(vec!["-fretain-comments-from-system-headers".into()])
             .collect();
 
         // Passing -c crashes LibClang

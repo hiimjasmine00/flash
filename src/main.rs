@@ -2,20 +2,26 @@
 #![feature(iter_advance_by)]
 #![feature(iter_intersperse)]
 
-use crate::{analyze::create_docs, url::UrlPath, normalize::Normalize};
+use crate::{analyze::create_docs, normalize::Normalize, url::UrlPath};
 use clap::Parser;
 use config::Config;
-use std::{fs, path::{PathBuf, Path}, process::exit, io, time::Instant};
+use std::{
+    error::Error,
+    fs, io,
+    path::{Path, PathBuf},
+    process::exit,
+    time::Instant,
+};
 
 mod analyze;
+mod annotation;
 mod builder;
 mod cmake;
 mod config;
 mod html;
-mod url;
-mod normalize;
-mod annotation;
 mod lookahead;
+mod normalize;
+mod url;
 
 #[derive(Parser, Debug)]
 #[command(name("Flash"), version, about)]
@@ -31,6 +37,10 @@ struct Args {
     /// Whether to overwrite output directory if it already exists
     #[arg(long, default_value_t = false)]
     overwrite: bool,
+
+    /// Whether to skip invoking CMake entirely, relies on existing build dir.
+    #[arg(long, default_value_t = false, hide = true)]
+    skip_build: bool,
 }
 
 fn remove_dir_contents<P: AsRef<Path>>(path: P) -> io::Result<()> {
@@ -49,7 +59,7 @@ fn remove_dir_contents<P: AsRef<Path>>(path: P) -> io::Result<()> {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), String> {
+async fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
     // Check if output dir exists
@@ -59,19 +69,15 @@ async fn main() -> Result<(), String> {
         // Then overwrite must be specified
         && !args.overwrite
     {
-        println!(
+        eprintln!(
             "Output directory {} already exists and no --overwrite option was specified, aborting",
-            args.output.to_str().unwrap()
+            args.output.to_string_lossy()
         );
         exit(1);
     }
 
-    // Clear output dir if it exists
-    if args.output.exists() {
-        remove_dir_contents(&args.output).unwrap();
-    }
-    else {
-        fs::create_dir_all(&args.output).unwrap();
+    if !args.output.exists() {
+        fs::create_dir_all(&args.output)?;
     }
 
     let relative_output = if args.output.is_relative() {
@@ -86,12 +92,12 @@ async fn main() -> Result<(), String> {
     let full_output = if args.output.is_absolute() {
         args.output
     } else {
-        std::env::current_dir().unwrap().join(args.output).normalize()
+        std::env::current_dir()?.join(args.output).normalize()
     };
     let full_input = if args.input.is_absolute() {
         args.input
     } else {
-        std::env::current_dir().unwrap().join(args.input).normalize()
+        std::env::current_dir()?.join(args.input).normalize()
     };
     std::env::set_current_dir(&full_input).expect(
         "Unable to set input dir as working directory \
@@ -107,8 +113,12 @@ async fn main() -> Result<(), String> {
         conf.project.name, conf.project.version
     );
     let now = Instant::now();
-    create_docs(conf.clone()).await?;
-    println!("Docs built for {} in {}s", conf.project.name, now.elapsed().as_secs());
+    create_docs(conf.clone(), args.skip_build).await?;
+    println!(
+        "Docs built for {} in {}s",
+        conf.project.name,
+        now.elapsed().as_secs()
+    );
 
     Ok(())
 }

@@ -84,26 +84,20 @@ async fn analyze_with_clang(config: Arc<Config>, args: &[String]) -> Result<(), 
     Ok(())
 }
 
-async fn analyze_with_cmake(config: Arc<Config>) -> Result<(), String> {
+async fn analyze_with_cmake(config: Arc<Config>, skip_build: bool) -> Result<(), String> {
     // Configure the cmake project
-    cmake::cmake_configure(
-        &config.cmake.as_ref().unwrap().build_dir,
-        &config
-            .cmake
-            .as_ref()
-            .unwrap()
-            .config_args,
-    )?;
+    if !skip_build {
+        cmake::cmake_configure(
+            &config.cmake.as_ref().unwrap().build_dir,
+            &config.cmake.as_ref().unwrap().config_args,
+        )?;
+    }
 
     // Build the cmake project
-    if config.cmake.as_ref().unwrap().build {
+    if !skip_build && config.cmake.as_ref().unwrap().build {
         cmake::cmake_build(
             &config.cmake.as_ref().unwrap().build_dir,
-            &config
-                .cmake
-                .as_ref()
-                .unwrap()
-                .build_args,
+            &config.cmake.as_ref().unwrap().build_args,
         )?;
     }
 
@@ -116,7 +110,7 @@ async fn analyze_with_cmake(config: Arc<Config>) -> Result<(), String> {
     Ok(())
 }
 
-pub async fn create_docs(config: Arc<Config>) -> Result<(), String> {
+pub async fn create_docs(config: Arc<Config>, skip_build: bool) -> Result<(), String> {
     // Execute prebuild commands
     if let Some(cmds) = config.run.as_ref().map(|c| &c.prebuild) {
         for cmd in cmds {
@@ -126,7 +120,7 @@ pub async fn create_docs(config: Arc<Config>) -> Result<(), String> {
 
     // Build based on mode
     if config.cmake.is_some() {
-        analyze_with_cmake(config).await
+        analyze_with_cmake(config, skip_build).await
     }
     // Build with extra compile args only
     else {

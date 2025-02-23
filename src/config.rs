@@ -1,5 +1,6 @@
 use flash_macros::decl_config;
 use glob::glob;
+use regex_lite::Regex;
 use serde::{Deserialize, Deserializer};
 use std::{fs, path::PathBuf, sync::Arc};
 
@@ -37,6 +38,27 @@ where
                 .map(|g| g.unwrap())
         })
         .collect())
+}
+
+pub struct MyRegex(Regex);
+
+impl<'de> serde::Deserialize<'de> for MyRegex {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Regex::new(&s)
+            .map_err(serde::de::Error::custom)
+            .map(MyRegex)
+    }
+}
+
+impl std::ops::Deref for MyRegex {
+    type Target = Regex;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 macro_rules! default_template {
@@ -131,7 +153,6 @@ decl_config! {
             tree?: String,
             icon?: PathBuf,
         },
-        external_libs?: Vec<Arc<ExternalLib>>,
         tutorials? {
             dir: PathBuf,
             assets: Vec<PathBuf> as parse_glob = Vec::new(),
@@ -164,6 +185,11 @@ decl_config! {
         scripts {
             css: Vec<Script> = default_scripts!("default.css", "nav.css", "content.css", "themes.css"),
             js:  Vec<Script> = default_scripts!("script.js"),
+        },
+        external_libs: Vec<Arc<ExternalLib>> = Vec::new(),
+        ignore? {
+            patterns_full: Vec<MyRegex> = Vec::new(),
+            patterns_name: Vec<MyRegex> = Vec::new(),
         },
         let input_dir: PathBuf,
         let output_dir: PathBuf,

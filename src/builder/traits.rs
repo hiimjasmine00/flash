@@ -257,8 +257,8 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
                 let path = path.to_string_lossy();
                 config
                     .external_libs
-                    .as_ref()
-                    .and_then(|x| x.iter().find(|f| path.contains(&f.pattern)))
+                    .iter()
+                    .find(|f| path.contains(&f.pattern))
             })
             .cloned()
     }

@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use clang::{Entity, EntityKind};
+use log::debug;
 
 use crate::{config::Config, url::UrlPath};
 
@@ -185,11 +186,12 @@ impl<'e> Namespace<'e> {
     }
 
     fn load_entries(&mut self, config: Arc<Config>) {
-        for child in &self.entity.get_children() {
+        'entries: for child in &self.entity.get_children() {
             // skip unnamed items
-            if child.get_name().is_none() {
+            let Some(child_name) = child.get_name() else {
                 continue;
-            }
+            };
+            let full_child_name = child.full_name().join("::");
 
             // skip stuff from external headers
             if child.is_in_system_header()
@@ -199,11 +201,23 @@ impl<'e> Namespace<'e> {
             }
 
             // skips specialization of std stuff
-            let is_parent_std = child
-                .get_semantic_parent()
-                .map_or(false, |f| f.get_name().as_deref() == Some("std"));
-            if is_parent_std {
+            if full_child_name.starts_with("std::") {
                 continue;
+            }
+
+            if let Some(ignore) = &config.ignore {
+                for pat in &ignore.patterns_full {
+                    if pat.is_match(&full_child_name) {
+                        debug!("skipping {full_child_name}");
+                        continue 'entries;
+                    }
+                }
+                for pat in &ignore.patterns_name {
+                    if pat.is_match(&child_name) {
+                        debug!("skipping {full_child_name}");
+                        continue 'entries;
+                    }
+                }
             }
 
             if let Some(kind) = CppItemKind::from(child) {

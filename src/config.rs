@@ -118,6 +118,11 @@ decl_config! {
         exists_online: bool = true,
     }
 
+    struct ExternalLib {
+        pattern: String,
+        repository: String,
+    }
+
     struct Config {
         project {
             name: String,
@@ -126,6 +131,7 @@ decl_config! {
             tree?: String,
             icon?: PathBuf,
         },
+        external_libs?: Vec<Arc<ExternalLib>>,
         tutorials? {
             dir: PathBuf,
             assets: Vec<PathBuf> as parse_glob = Vec::new(),

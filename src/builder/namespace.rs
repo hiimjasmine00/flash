@@ -1,15 +1,15 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use clang::{Entity, EntityKind};
 
-use crate::url::UrlPath;
+use crate::{config::Config, url::UrlPath};
 
 use super::{
-    traits::{ASTEntry, BuildResult, EntityMethods, Entry, NavItem},
     builder::Builder,
     class::Class,
     function::Function,
     struct_::Struct,
+    traits::{ASTEntry, BuildResult, EntityMethods, Entry, NavItem},
 };
 
 pub enum CppItemKind {
@@ -23,7 +23,9 @@ impl CppItemKind {
     pub fn from(entity: &Entity) -> Option<Self> {
         match entity.get_kind() {
             EntityKind::StructDecl => Some(Self::Struct),
-            EntityKind::ClassDecl | EntityKind::ClassTemplate | EntityKind::ClassTemplatePartialSpecialization => Some(Self::Class),
+            EntityKind::ClassDecl
+            | EntityKind::ClassTemplate
+            | EntityKind::ClassTemplatePartialSpecialization => Some(Self::Class),
             EntityKind::FunctionDecl | EntityKind::FunctionTemplate => Some(Self::Function),
             EntityKind::Namespace => Some(Self::Namespace),
             _ => None,
@@ -48,7 +50,11 @@ pub enum CppItem<'e> {
 }
 
 impl<'e> CppItem<'e> {
-    fn get(&'e self, matcher: &dyn Fn(&dyn ASTEntry<'e>) -> bool, out: &mut Vec<&'e dyn ASTEntry<'e>>) {
+    fn get(
+        &'e self,
+        matcher: &dyn Fn(&dyn ASTEntry<'e>) -> bool,
+        out: &mut Vec<&'e dyn ASTEntry<'e>>,
+    ) {
         match self {
             CppItem::Namespace(ns) => {
                 if matcher(ns) {
@@ -57,22 +63,22 @@ impl<'e> CppItem<'e> {
                 for entry in ns.entries.values() {
                     entry.get(&matcher, out);
                 }
-            },
+            }
             CppItem::Class(cls) => {
                 if matcher(cls) {
                     out.push(cls);
                 }
-            },
+            }
             CppItem::Struct(cls) => {
                 if matcher(cls) {
                     out.push(cls);
                 }
-            },
+            }
             CppItem::Function(fun) => {
                 if matcher(fun) {
                     out.push(fun);
                 }
-            },
+            }
         }
     }
 }
@@ -142,35 +148,50 @@ pub struct Namespace<'e> {
 }
 
 impl<'e> Namespace<'e> {
-    pub fn new(entity: Entity<'e>) -> Self {
+    pub fn new(entity: Entity<'e>, config: Arc<Config>) -> Self {
         let mut ret = Self {
             entity,
             is_root: false,
             entries: HashMap::new(),
         };
-        ret.load_entries();
+        ret.load_entries(config);
         ret
     }
 
-    pub fn new_root(entity: Entity<'e>) -> Self {
+    pub fn new_root(entity: Entity<'e>, config: Arc<Config>) -> Self {
         let mut ret = Self {
             entity,
             is_root: true,
             entries: HashMap::new(),
         };
-        ret.load_entries();
+        ret.load_entries(config);
         ret
     }
 
-    fn load_entries(&mut self) {
+    fn load_entries(&mut self, config: Arc<Config>) {
         for child in &self.entity.get_children() {
-            if child.is_in_system_header() || child.get_name().is_none() {
+            // skip unnamed items
+            if child.get_name().is_none() {
                 continue;
             }
+
+            // skip stuff from external headers
+            if child.is_in_system_header() && child.get_allowed_external_lib(config.clone()).is_none() {
+                continue;
+            }
+
+            // skips specialization of std stuff
+            let is_parent_std = child
+                .get_semantic_parent()
+                .map_or(false, |f| f.get_name().as_deref() == Some("std"));
+            if is_parent_std {
+                continue;
+            }
+
             if let Some(kind) = CppItemKind::from(child) {
                 match kind {
                     CppItemKind::Namespace => {
-                        let entry = Namespace::new(*child);
+                        let entry = Namespace::new(*child, config.clone());
                         // Merge existing entries of namespace
                         if let Some(key) = self.entries.get_mut(&entry.name()) {
                             if let CppItem::Namespace(ns) = key {
@@ -206,7 +227,7 @@ impl<'e> Namespace<'e> {
         }
     }
 
-    // so apparently if you make this a <M: Fn(&dyn ASTEntry<'e>) -> bool> 
+    // so apparently if you make this a <M: Fn(&dyn ASTEntry<'e>) -> bool>
     // rustc crashes
     pub fn get(&'e self, matcher: &dyn Fn(&dyn ASTEntry<'e>) -> bool) -> Vec<&'e dyn ASTEntry<'e>> {
         let mut res = Vec::new();
@@ -252,9 +273,10 @@ impl<'e> Entry<'e> for Namespace<'e> {
     fn url(&self) -> UrlPath {
         if self.is_root {
             UrlPath::new()
-        }
-        else {
-            self.entity.rel_docs_url().expect("Unable to get namespace URL")
+        } else {
+            self.entity
+                .rel_docs_url()
+                .expect("Unable to get namespace URL")
         }
     }
 }

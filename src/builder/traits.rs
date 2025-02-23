@@ -5,7 +5,7 @@ use std::{path::PathBuf, sync::Arc, collections::HashMap};
 use tokio::task::JoinHandle;
 
 use crate::{
-    config::{Config, Source},
+    config::{Config, ExternalLib, Source},
     html::{Html, HtmlElement, HtmlList, HtmlText},
     url::UrlPath,
 };
@@ -52,6 +52,9 @@ pub trait EntityMethods<'e> {
 
     /// Same as extract_source_string, but removes new lines, double spaces, and leading/trailing whitespace
     fn extract_source_string_cleaned(&self) -> Option<String>;
+
+    /// Checks if the entitiy is in one of the allowed external libraries
+    fn get_allowed_external_lib(&self, config: Arc<Config>) -> Option<Arc<ExternalLib>>;
 }
 
 impl<'e> EntityMethods<'e> for Entity<'e> {
@@ -106,13 +109,10 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
     }
 
     fn github_url(&self, config: Arc<Config>) -> Option<String> {
-        // If this is an std item, redirect to cppreference instead
         if self.full_name().first().is_some_and(|n| n == "std") {
-            Some(format!(
-                "https://en.cppreference.com/w/cpp/{}/{}",
-                self.definition_file()?.file_name()?.to_str()?,
-                self.get_name()?
-            ))
+            unreachable!("Shouldn't be trying to link to a stl header - {:?}", self.get_name())
+        } else if let Some(lib) = self.get_allowed_external_lib(config.clone()) {
+            Some(lib.repository.clone())
         } else {
             Some(
                 config.project.tree.clone()?
@@ -122,6 +122,9 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
     }
 
     fn include_path(&self, config: Arc<Config>) -> Option<UrlPath> {
+        if self.is_in_system_header() {
+            return UrlPath::part(self.header(config.clone())?.file_name()?.to_string_lossy().as_ref()).into()
+        }
         UrlPath::try_from(&self.header(config.clone())?)
             .ok()?
             .strip_prefix(&self.config_source(config)?.dir)
@@ -151,6 +154,11 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
                 }
             }
         }
+        // remove leading anon namespaces
+        let mut ancestors: Vec<_> = ancestors
+            .into_iter()
+            .skip_while(|e| e.get_name().is_none())
+            .collect();
         ancestors.push(*self);
         ancestors
     }
@@ -213,6 +221,22 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
             .filter(|x| !x.is_empty())
             .intersperse(" ")
             .collect())
+    }
+
+    fn get_allowed_external_lib(&self, config: Arc<Config>) -> Option<Arc<ExternalLib>> {
+        self.is_in_system_header()
+            .then(|| self.get_location())
+            .flatten()
+            .and_then(|x| x.get_file_location().file)
+            .and_then(|file| {
+                let path = file.get_path();
+                let path = path.to_string_lossy();
+                config
+                    .external_libs
+                    .as_ref()
+                    .and_then(|x| x.iter().find(|f| path.contains(&f.pattern)))
+            })
+            .cloned()
     }
 }
 

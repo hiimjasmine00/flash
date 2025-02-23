@@ -142,7 +142,7 @@ impl<'i, 'c, 'b, 'e, const SIZE: usize, F: Fn(UrlPath) -> Option<UrlPath>> Itera
                             dest.split("/").map(|s| s.to_string()).collect(),
                         );
                         if let Some(url) = url_fixer(url) {
-                            new_dest = url.to_string();
+                            new_dest = url.to_unencoded_string();
                         } else {
                             new_dest = dest.to_string();
                         }
@@ -154,7 +154,9 @@ impl<'i, 'c, 'b, 'e, const SIZE: usize, F: Fn(UrlPath) -> Option<UrlPath>> Itera
                     if dest.starts_with("/")
                         && let Ok(dest) = UrlPath::parse(&new_dest)
                     {
-                        new_dest = dest.to_absolute(self.builder.config.clone()).to_string();
+                        new_dest = dest
+                            .to_absolute(self.builder.config.clone())
+                            .to_unencoded_string();
                     }
 
                     // return fixed url

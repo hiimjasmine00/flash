@@ -157,6 +157,19 @@ impl UrlPath {
     pub fn is_empty(&self) -> bool {
         self.parts.is_empty()
     }
+
+    pub fn to_unencoded_string(&self) -> String {
+        let leading = if self
+            .parts
+            .first()
+            .is_some_and(|x| x == "http:" || x == "https:")
+        {
+            ""
+        } else {
+            "/"
+        };
+        format!("{leading}{}", &self.parts.join("/"))
+    }
 }
 
 struct UrlVisitor;

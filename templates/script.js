@@ -111,7 +111,7 @@ function highlight() {
                 head.appendChild(linkBtn);
             }
         });
-    
+
     // Highlight warning quotes
     document.querySelectorAll('blockquote > p')
         .forEach(quote => {
@@ -169,7 +169,7 @@ function furryMatch(str, query) {
     if (!query.length) {
         return undefined;
     }
-    
+
     let score = 0;
     let matchedString = '';
     let toMatch = 0;
@@ -282,7 +282,7 @@ function updateNav() {
         if (currentNav().classList.contains('monospace')) {
             searchResults.classList.add('monospace');
         }
-    
+
         const results = [];
         currentNav().querySelectorAll('a').forEach(a => {
             const match = furryMatchMany(
@@ -315,7 +315,7 @@ function updateNav() {
                     });
                     f = f.map(a => `<span class="namespace">${a}</span>`);
                     f.push(match.matched);
-                    node.innerHTML = feather.icons.code.toSvg({ 'class': 'icon class' }) + 
+                    node.innerHTML = feather.icons.code.toSvg({ 'class': 'icon class' }) +
                         f.join('<span class="scope">::</span>');
                     results.push([match.score, node]);
                 }
@@ -333,9 +333,9 @@ function updateNav() {
             info.innerText = 'No results found';
             searchResults.appendChild(info);
         }
-    
+
         currentNav().parentElement.insertBefore(searchResults, currentNav());
-    
+
         searchNav = searchResults;
     }
     else {
@@ -383,6 +383,82 @@ function showNav(id) {
     updateNav();
 }
 
+async function buildNav() {
+    const res = await fetch(`${FLASH_OUTPUT_URL}/nav.json`);
+    const data = await res.json();
+
+    function buildIconInto(parent, icon) {
+        if (!icon) return;
+
+        let [name, variant] = icon;
+        let elem = document.createElement("i");
+        elem.setAttribute("data-feather", name);
+        elem.classList.add("icon");
+        if (variant) elem.classList.add("variant");
+
+        parent.appendChild(elem);
+    }
+
+    function buildNavFor(data) {
+        if (data.type === "root") {
+            if (data.name) {
+                let elem = document.createElement("details");
+                elem.open = true;
+                elem.classList.add("root");
+
+                let summary = document.createElement("summary");
+                let icon = document.createElement("i");
+                icon.setAttribute("data-feather", "chevron-right");
+                summary.appendChild(icon);
+                summary.insertAdjacentText('beforeend', data.name);
+                elem.appendChild(summary);
+
+                let div = document.createElement("div");
+                data.items.map(buildNavFor).forEach(x => div.appendChild(x));
+                elem.appendChild(div);
+
+                return elem;
+            } else {
+                return data.items.map(buildNavFor);
+            }
+        } else if (data.type === "dir") {
+            let elem = document.createElement("details");
+            elem.open = data.open;
+
+            let summary = document.createElement("summary");
+            let icon = document.createElement("i");
+            icon.setAttribute("data-feather", "chevron-right");
+            summary.appendChild(icon);
+            buildIconInto(summary, data.icon);
+            summary.insertAdjacentText('beforeend', data.name);
+            elem.appendChild(summary);
+
+            let div = document.createElement("div");
+            data.items.map(buildNavFor).forEach(x => div.appendChild(x));
+            elem.appendChild(div);
+
+            return elem;
+        } else if (data.type === "link") {
+            let elem = document.createElement("a");
+            elem.onclick = () => { return navigate(data.url); };
+            elem.href = data.url;
+            buildIconInto(elem, data.icon);
+            elem.insertAdjacentText('beforeend', data.name);
+            return elem;
+        }
+    }
+    const appendChildren = (parent, children) => {
+        if (Array.isArray(children)) {
+            children.forEach(x => parent.appendChild(x));
+        } else {
+            parent.appendChild(children);
+        }
+    }
+    appendChildren(document.querySelector('#nav-content-entities'), buildNavFor(data.entities));
+	appendChildren(document.querySelector('#nav-content-tutorials'), buildNavFor(data.tutorials));
+    console.log(data);
+}
+
 function navigate(url) {
     const trueURL = url.split('#').shift();
     const head = url.split('#').pop();
@@ -407,7 +483,7 @@ function navigate(url) {
         .catch(err => {
             console.error(err);
         });
-    
+
     // Prevent calling default onclick handler
     return false;
 }
@@ -446,11 +522,14 @@ function toggleMenu() {
     nav.classList.toggle('collapsed');
 }
 
+await buildNav();
+
 // Highlight everything
 highlight();
 
 // Mark the current page in nav as seleted
 {
+    console.log("Hi");
     let currentUrl = window.location.pathname;
     while (currentUrl.endsWith('/')) {
         currentUrl = currentUrl.slice(0, -1)
@@ -485,3 +564,8 @@ window.addEventListener('hashchange', () => {
 document.querySelector(`[data-pick-theme="${
     localStorage.getItem('theme') ?? 'dark'
 }"]`)?.click();
+
+// expose these to the html
+window.showNav = showNav;
+window.clearSearch = clearSearch;
+window.toggleMenu = toggleMenu;

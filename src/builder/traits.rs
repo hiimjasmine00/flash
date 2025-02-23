@@ -1,4 +1,5 @@
 use clang::{Entity, EntityKind, Accessibility};
+use serde_json::json;
 
 use std::{path::PathBuf, sync::Arc, collections::HashMap};
 
@@ -6,7 +7,7 @@ use tokio::task::JoinHandle;
 
 use crate::{
     config::{Config, ExternalLib, Source},
-    html::{Html, HtmlElement, HtmlList, HtmlText},
+    html::Html,
     url::UrlPath,
 };
 
@@ -328,68 +329,33 @@ impl NavItem {
         }
     }
 
-    pub fn to_html(&self, config: Arc<Config>) -> Html {
+    pub fn to_json(&self, config: Arc<Config>) -> serde_json::Value {
         match self {
             NavItem::Link(name, url, icon, _) => {
-                HtmlList::new(vec![
-                    HtmlElement::new("a")
-                        .with_attr(
-                            "onclick",
-                            format!("return navigate('{}')", url.to_absolute(config.clone())),
-                        )
-                        .with_attr("href", url.to_absolute(config.clone()))
-                        .with_child_opt(icon.as_ref().map(|i| {
-                            HtmlElement::new("i")
-                                .with_attr("data-feather", &i.0)
-                                .with_class("icon")
-                                .with_class_opt(i.1.then_some("variant"))
-                        }))
-                        .with_child(HtmlText::new(name))
-                        .into()
-                ]).into()
+                json!({
+                    "type": "link",
+                    "icon": icon,
+                    "name": name,
+                    "url": url.to_absolute(config.clone()).to_string(),
+                })
             }
 
-            NavItem::Dir(name, items, icon, open) => HtmlElement::new("details")
-                .with_attr_opt("open", open.then_some(""))
-                .with_child(
-                    HtmlElement::new("summary")
-                        .with_child(
-                            HtmlElement::new("i").with_attr("data-feather", "chevron-right"),
-                        )
-                        .with_child_opt(icon.as_ref().map(|i| {
-                            HtmlElement::new("i")
-                                .with_attr("data-feather", &i.0)
-                                .with_class("icon")
-                                .with_class_opt(i.1.then_some("variant"))
-                        }))
-                        .with_child(HtmlText::new(name)),
-                )
-                .with_child(
-                    HtmlElement::new("div")
-                        .with_children(items.iter().map(|i| i.to_html(config.clone())).collect()),
-                )
-                .into(),
+            NavItem::Dir(name, items, icon, open) => {
+                json!({
+                    "type": "dir",
+                    "icon": icon,
+                    "name": name,
+                    "open": open,
+                    "items": items.iter().map(|x| x.to_json(config.clone())).collect::<Vec<_>>()
+                })
+            }
 
             NavItem::Root(name, items) => {
-                if let Some(name) = name {
-                    HtmlElement::new("details")
-                        .with_attr("open", "")
-                        .with_attr("class", "root")
-                        .with_child(
-                            HtmlElement::new("summary")
-                                .with_child(
-                                    HtmlElement::new("i")
-                                        .with_attr("data-feather", "chevron-right"),
-                                )
-                                .with_child(HtmlText::new(name)),
-                        )
-                        .with_child(HtmlElement::new("div").with_children(
-                            items.iter().map(|i| i.to_html(config.clone())).collect(),
-                        ))
-                        .into()
-                } else {
-                    HtmlList::new(items.iter().map(|i| i.to_html(config.clone())).collect()).into()
-                }
+                json!({
+                    "type": "root",
+                    "name": name,
+                    "items": items.iter().map(|x| x.to_json(config.clone())).collect::<Vec<_>>()
+                })
             }
         }
     }

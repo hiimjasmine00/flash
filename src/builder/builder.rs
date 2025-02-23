@@ -1,5 +1,6 @@
 use clang::{Clang, Entity};
 use indicatif::ProgressBar;
+use serde_json::json;
 use std::{collections::HashMap, fs, sync::Arc};
 use strfmt::strfmt;
 use tokio::task::JoinHandle;
@@ -161,8 +162,8 @@ impl<'e> Builder<'e> {
                 .map_err(|e| format!("Unable to format {target_url}: {e}"))?
             )?;
 
-            let mut page_fmt = default_format(config.clone());
-            page_fmt.extend(HashMap::from([
+            let mut page = default_format(config.clone());
+            page.extend(HashMap::from([
                 (
                     "head_content".to_owned(),
                     strfmt(&config.templates.head, &fmt)
@@ -172,7 +173,7 @@ impl<'e> Builder<'e> {
                 ("main_content".to_owned(), content.clone()),
             ]));
             let page = minify_html(
-                strfmt(&config.templates.page, &page_fmt)
+                strfmt(&config.templates.page, &page)
                 .map_err(|e| format!("Unable to format {target_url}: {e}"))?
             )?;
             
@@ -273,32 +274,25 @@ impl<'e> Builder<'e> {
             ).map_err(|e| format!("Unable to save metadata {e}"))?
         ).map_err(|e| format!("Unable to save metadata {e}"))?;
 
+        fs::write(self.config.output_dir.join("nav.json"), serde_json::to_string(&self.build_nav_metadata()).unwrap()).unwrap();
+
         Ok(())
+    }
+
+    fn build_nav_metadata(&self) -> serde_json::Value {
+        let tutorials = self.tutorials.nav().to_json(self.config.clone());
+        let entities = self.root.nav().to_json(self.config.clone());
+        json!({
+            "tutorials": tutorials,
+            "entities": entities,
+        })
     }
 
     pub fn build_nav(&self) -> Result<String, String> {
         if let Some(ref cached) = self.nav_cache {
             return Ok(cached.to_owned());
         }
-        let mut fmt = default_format(self.config.clone());
-        fmt.extend([
-            (
-                "tutorial_content".into(),
-                self.tutorials.nav().to_html(self.config.clone()).gen_html(),
-            ),
-            (
-                "entity_content".into(),
-                self.root.nav().to_html(self.config.clone()).gen_html(),
-            ),
-            (
-                "file_content".into(),
-                self.file_roots
-                    .iter()
-                    .map(|root| root.nav().to_html(self.config.clone()).gen_html())
-                    .collect::<Vec<_>>()
-                    .join("\n"),
-            ),
-        ]);
+        let fmt = default_format(self.config.clone());
         strfmt(&self.config.templates.nav, &fmt)
             .map_err(|e| format!("Unable to format navbar: {e}"))
     }

@@ -1,3 +1,5 @@
+use log::info;
+
 use crate::{
     config::Config,
     html::{Html, HtmlElement},
@@ -152,7 +154,7 @@ impl TutorialFolder {
                 let Ok(url) = UrlPath::try_from(&stripped_path) else {
                     continue;
                 };
-                println!("creating tutorial for {}", url);
+                info!("creating tutorial for {}", url);
                 let tut = Tutorial::new(config.clone(), url);
                 tutorials.insert(tut.name(), tut);
             }

@@ -4,6 +4,7 @@ use clang::{
     token::{Token, TokenKind},
     Entity, EntityKind,
 };
+use log::{error, warn};
 use multipeek::{IteratorExt, MultiPeek};
 
 use crate::{
@@ -193,7 +194,7 @@ impl<'s> CommentLexer<'s> {
 
     pub fn param_for(&mut self, cmd: &ParsedCommand) -> String {
         self.next_param().unwrap_or_else(|| {
-            println!(
+            warn!(
                 "Warning parsing JSDoc comment: Expected parameter for command {}",
                 cmd.cmd
             );
@@ -203,7 +204,7 @@ impl<'s> CommentLexer<'s> {
 
     pub fn value_for(&mut self, cmd: &ParsedCommand) -> String {
         self.next_value().unwrap_or_else(|| {
-            println!(
+            warn!(
                 "Warning parsing JSDoc comment: Expected value for command {}",
                 cmd.cmd
             );
@@ -485,7 +486,7 @@ impl<'e> Example<'e> {
         if self.analyze
             && let Ok(sweet) = self
                 .try_to_analyzed_html()
-                .inspect_err(|e| println!("Unable to parse example: {e}"))
+                .inspect_err(|e| error!("Unable to parse example: {e}"))
         {
             sweet
         }

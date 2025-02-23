@@ -5,6 +5,7 @@
 use crate::{analyze::create_docs, normalize::Normalize, url::UrlPath};
 use clap::Parser;
 use config::Config;
+use log::{error, info};
 use std::{error::Error, fs, path::PathBuf, process::exit, time::Instant};
 
 mod analyze;
@@ -39,6 +40,8 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    FlashLogger::init();
+
     let args = Args::parse();
 
     // Check if output dir exists
@@ -48,7 +51,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         // Then overwrite must be specified
         && !args.overwrite
     {
-        eprintln!(
+        error!(
             "Output directory {} already exists and no --overwrite option was specified, aborting",
             args.output.to_string_lossy()
         );
@@ -87,17 +90,47 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let conf = Config::parse(full_input, full_output, relative_output)?;
 
     // Build the docs
-    println!(
+    info!(
         "Building docs for {} ({})",
         conf.project.name, conf.project.version
     );
     let now = Instant::now();
     create_docs(conf.clone(), args.skip_build).await?;
-    println!(
+    info!(
         "Docs built for {} in {}s",
         conf.project.name,
         now.elapsed().as_secs()
     );
 
     Ok(())
+}
+
+struct FlashLogger;
+
+impl log::Log for FlashLogger {
+    fn enabled(&self, metadata: &log::Metadata) -> bool {
+        metadata.level() <= log::Level::Info
+    }
+
+    fn log(&self, record: &log::Record) {
+        use log::Level;
+        use owo_colors::OwoColorize;
+        let header = match record.level() {
+            Level::Warn => "[warn]".yellow().bold().to_string(),
+            Level::Error => "[error]".red().bold().to_string(),
+            Level::Info => "[info]".bright_blue().bold().to_string(),
+            _ => format!("{}", record.level()),
+        };
+        println!("{} {}", header, record.args());
+    }
+
+    fn flush(&self) {}
+}
+
+static LOGGER: FlashLogger = FlashLogger;
+impl FlashLogger {
+    pub fn init() {
+        log::set_logger(&LOGGER).expect("Failed to initialize logger");
+        log::set_max_level(log::LevelFilter::Info);
+    }
 }

@@ -37,3 +37,5 @@ ico = "0.3.0"
 
 # avoid ahash 0.7.x since its broken on newer rust
 ahash = "0.8.11"
+log = "0.4.26"
+owo-colors = "4.2.0"

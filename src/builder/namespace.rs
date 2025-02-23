@@ -223,8 +223,11 @@ impl<'e> Namespace<'e> {
                 continue;
             }
 
-            // skips specialization of std stuff
-            if full_child_name.starts_with("std::") {
+            // skips specialization of std stuff or builtin stuff
+            if full_child_name.starts_with("std::")
+                || child_name.contains("deduction guide for")
+                || child_name.contains("unnamed enum")
+            {
                 continue;
             }
 
@@ -241,6 +244,9 @@ impl<'e> Namespace<'e> {
                         continue 'entries;
                     }
                 }
+            }
+            if child_name.contains(" ") {
+                debug!("{full_child_name:?} is probably an internal identifier");
             }
 
             if let Some(kind) = CppItemKind::from(child) {

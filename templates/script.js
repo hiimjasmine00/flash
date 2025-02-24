@@ -481,7 +481,6 @@ async function buildNav() {
     }
     appendChildren(document.querySelector('#nav-content-entities'), buildNavFor(data.entities));
 	appendChildren(document.querySelector('#nav-content-tutorials'), buildNavFor(data.tutorials));
-    console.log(data);
 }
 
 function navigate(url) {
@@ -554,7 +553,6 @@ highlight();
 
 // Mark the current page in nav as seleted
 {
-    console.log("Hi");
     let currentUrl = window.location.pathname;
     while (currentUrl.endsWith('/')) {
         currentUrl = currentUrl.slice(0, -1)

@@ -47,6 +47,8 @@ impl CompileCommand {
             list.drain(ix..ix + 2);
         }
 
+        println!("{:?}", list);
+
         list
     }
 }

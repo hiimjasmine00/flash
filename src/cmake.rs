@@ -1,4 +1,4 @@
-use log::debug;
+use log::info;
 use serde::Deserialize;
 use std::{fs, path::PathBuf, process::Command, sync::Arc};
 
@@ -101,7 +101,7 @@ pub fn cmake_compile_args_for(config: Arc<Config>) -> Result<Vec<String>, String
         .ok_or(String::from("Project does not use CMake"))?
         .infer_args_from;
     let compile_commands = cmake_compile_commands(config.clone())?;
-    debug!("{:?}", compile_commands.iter().map(|cmd| cmd.file.to_string_lossy()).collect::<Vec<_>>());
+    info!("Found compile commands: {:?}", compile_commands.iter().map(|cmd| cmd.file.to_string_lossy()).collect::<Vec<_>>());
     for cmd in compile_commands {
         if cmd.file == config.input_dir.join(from) {
             return Ok(cmd.get_command_list(config));

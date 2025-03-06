@@ -101,7 +101,7 @@ pub fn cmake_compile_args_for(config: Arc<Config>) -> Result<Vec<String>, String
         .infer_args_from;
     println!("Finding compile commands");
     for cmd in cmake_compile_commands(config.clone())? {
-        println!("Found compile command for {}", cmd.file);
+        println!("Found compile command for {}", cmd.file.to_string_lossy());
         if cmd.file == config.input_dir.join(from) {
             return Ok(cmd.get_command_list(config));
         }

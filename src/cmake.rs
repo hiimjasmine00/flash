@@ -47,10 +47,6 @@ impl CompileCommand {
             list.drain(ix..ix + 2);
         }
 
-        for arg in &list {
-            println!("{}", arg);
-        }
-
         list
     }
 }

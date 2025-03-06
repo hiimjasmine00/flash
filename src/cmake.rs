@@ -99,9 +99,9 @@ pub fn cmake_compile_args_for(config: Arc<Config>) -> Result<Vec<String>, String
         .as_ref()
         .ok_or(String::from("Project does not use CMake"))?
         .infer_args_from;
-    println!("Finding compile commands");
-    for cmd in cmake_compile_commands(config.clone())? {
-        println!("Found compile command for {}", cmd.file.to_string_lossy());
+    let compile_commands = cmake_compile_commands(config.clone())?;
+    println!("{:?}", compile_commands.iter().map(|cmd| cmd.file.to_string_lossy()).collect::<Vec<_>>());
+    for cmd in compile_commands {
         if cmd.file == config.input_dir.join(from) {
             return Ok(cmd.get_command_list(config));
         }

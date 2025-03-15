@@ -1,7 +1,7 @@
 use clang::{Clang, Entity};
 use indicatif::ProgressBar;
 use serde_json::json;
-use std::{collections::HashMap, fs, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 use strfmt::strfmt;
 use tokio::task::JoinHandle;
 
@@ -56,7 +56,7 @@ impl<'e> Builder<'e> {
     fn setup(mut self) -> Result<Self, String> {
         // copy & minify CSS
         for script in &self.config.scripts.css {
-            fs::write(
+            std::fs::write(
                 self.config.output_dir.join(&script.name),
                 minify_css(script.content.to_string())?,
             )
@@ -65,7 +65,7 @@ impl<'e> Builder<'e> {
 
         // transpile, minify, and copy JS
         for script in &self.config.scripts.js {
-            fs::write(
+            std::fs::write(
                 self.config.output_dir.join(&script.name),
                 minify_js(script.content.to_string())?,
             )
@@ -74,7 +74,7 @@ impl<'e> Builder<'e> {
 
         // copy icon
         if let Some(ref icon) = self.config.project.icon {
-            fs::copy(
+            std::fs::copy(
                 self.config.input_dir.join(icon),
                 self.config.output_dir.join("icon.png"),
             )
@@ -102,14 +102,14 @@ impl<'e> Builder<'e> {
                     asset.strip_prefix(&tutorials.dir).unwrap_or(asset),
                 );
                 if let Some(parent) = output.parent() {
-                    fs::create_dir_all(self.config.output_dir.join(parent)).map_err(|e| {
+                    std::fs::create_dir_all(self.config.output_dir.join(parent)).map_err(|e| {
                         format!(
                             "Unable to create asset directory '{}': {e}",
                             output.to_string_lossy()
                         )
                     })?;
                 }
-                fs::copy(self.config.input_dir.join(asset), output).map_err(|e| {
+                std::fs::copy(self.config.input_dir.join(asset), output).map_err(|e| {
                     format!(
                         "Unable to copy asset '{}': {e}, {}",
                         asset.to_string_lossy(),
@@ -192,37 +192,41 @@ impl<'e> Builder<'e> {
             let output_dir = config.output_dir.join(target_url.to_pathbuf());
 
             // Make sure output directory exists
-            fs::create_dir_all(&output_dir)
+            tokio::fs::create_dir_all(&output_dir)
+                .await
                 .map_err(|e| format!("Unable to create directory for {target_url}: {e}"))?;
 
             // Save metadata to a file
-            fs::write(
+            tokio::fs::write(
                 output_dir.join("metadata.json"),
                 format!(
                     r#"{{"title": "{}", "description": "{}"}}"#,
                     title, description,
                 ),
             )
+            .await
             .map_err(|e| format!("Unable to save metadata for {target_url}: {e}"))?;
 
             // Write the plain content output
-            fs::write(
+            tokio::fs::write(
                 config
                     .output_dir
                     .join(target_url.to_pathbuf())
                     .join("content.html"),
                 content,
             )
+            .await
             .map_err(|e| format!("Unable to save {target_url}: {e}"))?;
 
             // Write the full page
-            fs::write(
+            tokio::fs::write(
                 config
                     .output_dir
                     .join(target_url.to_pathbuf())
                     .join("index.html"),
                 page,
             )
+            .await
             .map_err(|e| format!("Unable to save {target_url}: {e}"))?;
 
             Ok(target_url)
@@ -277,7 +281,7 @@ impl<'e> Builder<'e> {
             pbar.set_message("Generating metadata".to_string());
         }
 
-        fs::write(
+        tokio::fs::write(
             self.config.output_dir.join("functions.json"),
             serde_json::to_string(
                 &self
@@ -296,12 +300,14 @@ impl<'e> Builder<'e> {
             )
             .map_err(|e| format!("Unable to save metadata {e}"))?,
         )
+        .await
         .map_err(|e| format!("Unable to save metadata {e}"))?;
 
-        fs::write(
+        tokio::fs::write(
             self.config.output_dir.join("nav.json"),
             serde_json::to_string(&self.build_nav_metadata()).unwrap(),
         )
+        .await
         .unwrap();
 
         Ok(())

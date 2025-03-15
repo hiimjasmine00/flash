@@ -549,7 +549,12 @@ function toggleMenu() {
 await buildNav();
 
 // Highlight everything
-highlight();
+try {
+    highlight();
+} catch (e) {
+    console.error("Highlighting failed.. oops");
+    console.error(e);
+}
 
 // Mark the current page in nav as seleted
 {

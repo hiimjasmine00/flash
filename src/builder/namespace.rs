@@ -241,7 +241,7 @@ impl<'e> Namespace<'e> {
                 continue;
             }
 
-            if let Some(ignore) = &config.ignore {
+            if let Some(ignore) = &config.ignore && config.include.is_none() {
                 for pat in &ignore.patterns_full {
                     if pat.is_match(&full_child_name) {
                         debug!("skipping {full_child_name}");
@@ -253,6 +253,28 @@ impl<'e> Namespace<'e> {
                         debug!("skipping {full_child_name}");
                         continue 'entries;
                     }
+                }
+            }
+
+            if let Some(include) = &config.include && config.ignore.is_none() {
+                let mut skip = true;
+                for pat in &include.patterns_full {
+                    if pat.is_match(&full_child_name) {
+                        skip = false;
+                        break;
+                    }
+                }
+                if skip {
+                    for pat in &include.patterns_name {
+                        if pat.is_match(&child_name) {
+                            skip = false;
+                            break;
+                        }
+                    }
+                }
+                if skip {
+                    debug!("skipping {full_child_name}");
+                    continue;
                 }
             }
 

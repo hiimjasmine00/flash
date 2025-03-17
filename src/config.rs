@@ -145,6 +145,11 @@ decl_config! {
         repository: String,
     }
 
+    struct RegexPattern {
+        patterns_full: Vec<MyRegex> = Vec::new(),
+        patterns_name: Vec<MyRegex> = Vec::new(),
+    }
+
     struct Config {
         project {
             name: String,
@@ -187,10 +192,8 @@ decl_config! {
             js:  Vec<Script> = default_scripts!("script.js"),
         },
         external_libs: Vec<Arc<ExternalLib>> = Vec::new(),
-        ignore? {
-            patterns_full: Vec<MyRegex> = Vec::new(),
-            patterns_name: Vec<MyRegex> = Vec::new(),
-        },
+        ignore: Option<RegexPattern>,
+        include: Option<RegexPattern>,
         let input_dir: PathBuf,
         let output_dir: PathBuf,
         let output_url: Option<UrlPath>,

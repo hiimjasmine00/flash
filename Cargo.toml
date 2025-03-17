@@ -1,8 +1,8 @@
 [package]
 name = "flash"
-version = "0.3.1"
+version = "0.4.0"
 edition = "2021"
-authors = ["HJfod", "matcool"]
+authors = ["HJfod", "matcool", "hiimjasmine00"]
 description = "Documentation generator for C++"
 readme = "README.md"
 repository = "https://github.com/hjfod/flash"

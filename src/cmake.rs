@@ -12,6 +12,9 @@ pub struct CompileCommand {
 
 impl CompileCommand {
     pub fn get_command_list(&self, config: Arc<Config>) -> Vec<String> {
+        // regex for defines with \"\" escaping, since the slashes seem to be doubled for some reason
+        let define_regex = regex_lite::Regex::new("^-D(.+)=\\\\\"(.+)\\\\\"$").unwrap();
+
         // Not using shlex because that screws up -DFMT_CONSTEVAL=\"\"
         let mut list: Vec<String> = self.command.split(' ')
             // Skip clang.exe
@@ -32,6 +35,16 @@ impl CompileCommand {
                     vec![s.to_owned().replace("=\"\"", "=")]
                 }
             )
+            .map(|arg| {
+                let caps = define_regex.captures(&arg);
+                if let Some(caps) = caps {
+                    let name = caps.get(1).unwrap().as_str();
+                    let value = caps.get(2).unwrap().as_str();
+                    format!("-D{name}=\"{value}\"")
+                } else {
+                    arg
+                }
+            })
             // Add header root to include directories
             .chain(vec![format!("-I{}", config.input_dir.to_str().unwrap())])
             // Set working directory
@@ -46,6 +59,8 @@ impl CompileCommand {
         while let Some(ix) = list.iter().position(|s| s == "-c") {
             list.drain(ix..ix + 2);
         }
+
+        list.push("-ferror-limit=200".into());
 
         list
     }
@@ -104,6 +119,7 @@ pub fn cmake_compile_args_for(config: Arc<Config>) -> Result<Vec<String>, String
             return Ok(cmd.get_command_list(config));
         }
     }
+
     Err(format!(
         "Unable to find compile args for '{}'",
         config.input_dir.join(from).to_string_lossy()

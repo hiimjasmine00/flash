@@ -77,7 +77,7 @@ async fn analyze_with_clang(config: Arc<Config>, args: &[String]) -> Result<(), 
     pbar.set_message("Cleaning up files");
 
     // Clean up analyzable file
-    fs::remove_file(target_src).unwrap();
+    // fs::remove_file(target_src).unwrap();
 
     pbar.finish_using_style();
 

@@ -55,8 +55,8 @@ impl CompileCommand {
             .chain(vec!["-fretain-comments-from-system-headers".into()])
             .collect();
 
-        // Passing -c crashes LibClang
-        while let Some(ix) = list.iter().position(|s| s == "-c") {
+        // Passing -c or -arch crashes LibClang
+        while let Some(ix) = list.iter().position(|s| s == "-c" || s == "-arch") {
             list.drain(ix..ix + 2);
         }
 

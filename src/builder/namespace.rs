@@ -241,7 +241,7 @@ impl<'e> Namespace<'e> {
                 continue;
             }
 
-            if let Some(ignore) = &config.ignore && config.include.is_none() {
+            if let Some(ignore) = &config.ignore {
                 for pat in &ignore.patterns_full {
                     if pat.is_match(&full_child_name) {
                         debug!("skipping {full_child_name}");
@@ -256,7 +256,7 @@ impl<'e> Namespace<'e> {
                 }
             }
 
-            if let Some(include) = &config.include && config.ignore.is_none() {
+            if let Some(include) = &config.include {
                 let mut skip = true;
                 for pat in &include.patterns_full {
                     if pat.is_match(&full_child_name) {
@@ -307,7 +307,15 @@ impl<'e> Namespace<'e> {
 
                     CppItemKind::Function => {
                         let entry = Function::new(*child);
-                        self.entries.insert(entry.name(), CppItem::Function(entry));
+                        let entry_name = entry.name();
+                        let mut final_entry_name = entry_name.clone();
+                        // if we have some function overloads with the same name
+                        let mut count = 1;
+                        while let Some(CppItem::Function(_)) = self.entries.get(&final_entry_name) {
+                            final_entry_name = format!("{entry_name}_{count}");
+                            count += 1;
+                        }
+                        self.entries.insert(final_entry_name, CppItem::Function(entry));
                     }
                 }
             }

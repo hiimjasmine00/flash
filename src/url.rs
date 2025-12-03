@@ -170,6 +170,13 @@ impl UrlPath {
         };
         format!("{leading}{}", &self.parts.join("/"))
     }
+
+    pub fn append_to_last(mut self, suffix: &str) -> Self {
+        if let Some(last) = self.parts.last_mut() {
+            *last = format!("{}{}", last, suffix);
+        }
+        self
+    }
 }
 
 struct UrlVisitor;

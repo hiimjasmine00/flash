@@ -306,14 +306,17 @@ impl<'e> Namespace<'e> {
                     }
 
                     CppItemKind::Function => {
-                        let entry = Function::new(*child);
+                        let mut entry = Function::new(*child);
                         let entry_name = entry.name();
                         let mut final_entry_name = entry_name.clone();
                         // if we have some function overloads with the same name
-                        let mut count = 1;
+                        let mut count = 0;
                         while let Some(CppItem::Function(_)) = self.entries.get(&final_entry_name) {
-                            final_entry_name = format!("{entry_name}_{count}");
                             count += 1;
+                            final_entry_name = format!("{entry_name}{count}");
+                        }
+                        if count > 0 {
+                            entry.add_overload_index(count);
                         }
                         self.entries.insert(final_entry_name, CppItem::Function(entry));
                     }

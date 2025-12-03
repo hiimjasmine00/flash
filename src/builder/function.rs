@@ -11,11 +11,16 @@ use super::{
 
 pub struct Function<'e> {
     entity: Entity<'e>,
+    overload_index: Option<usize>,
 }
 
 impl<'e> Function<'e> {
     pub fn new(entity: Entity<'e>) -> Self {
-        Self { entity }
+        Self { entity, overload_index: None }
+    }
+
+    pub fn add_overload_index(&mut self, index: usize) {
+        self.overload_index = Some(index);
     }
 }
 
@@ -30,6 +35,7 @@ impl<'e> Entry<'e> for Function<'e> {
         self.entity
             .rel_docs_url()
             .expect("Unable to get function URL")
+            .append_to_last(self.overload_index.map_or("".into(), |i| i.to_string()).as_str())
     }
 
     fn build(&self, builder: &Builder<'e>) -> BuildResult {
